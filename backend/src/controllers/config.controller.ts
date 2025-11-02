@@ -39,14 +39,21 @@ export const getDepositWallet = async (req: Request, res: Response) => {
       });
     }
 
+    // Get network from environment or default to Sepolia testnet
+    const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
+    const tokenName = process.env.DEPOSIT_TOKEN || 'ETH';
+    const isTestnet = network.toLowerCase().includes('test') || network.toLowerCase().includes('sepolia') || network.toLowerCase().includes('goerli');
+
     res.json({
       walletAddress,
-      network: 'TRC20', // USDT on Tron network
+      network,
+      tokenName,
+      isTestnet,
       instructions: [
-        'Send USDT (TRC20) to the wallet address shown above',
+        `Send ${tokenName} on ${network} to the wallet address shown above`,
         'Enter the amount you sent in the deposit form',
         'Provide your wallet address and transaction hash',
-        'Wait for admin approval (usually within 24 hours)',
+        isTestnet ? 'Test network: Use testnet tokens for testing' : 'Wait for admin approval (usually within 24 hours)',
         'Your balance will be updated after approval'
       ]
     });

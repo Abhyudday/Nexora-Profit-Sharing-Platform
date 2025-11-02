@@ -95,13 +95,29 @@ export const approveDeposit = async (req: AuthRequest, res: Response) => {
 
     const newTotalDeposit = transaction.user.totalDeposit + transaction.amount;
 
-    // Update user level based on deposit
+    // Check if testnet mode (use lower thresholds for testing)
+    const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
+    const isTestnet = network.toLowerCase().includes('test') || 
+                      network.toLowerCase().includes('sepolia') || 
+                      network.toLowerCase().includes('goerli');
+
+    // Update user level based on deposit (testnet uses 1/100th of production values)
     let newLevel = transaction.user.level;
-    if (newTotalDeposit >= 10000) newLevel = UserLevel.VVIP;
-    else if (newTotalDeposit >= 5000) newLevel = UserLevel.VIP;
-    else if (newTotalDeposit >= 1000) newLevel = UserLevel.INVESTOR;
-    else if (newTotalDeposit >= 500) newLevel = UserLevel.BEGINNER;
-    else if (newTotalDeposit >= 100) newLevel = UserLevel.STARTER;
+    if (isTestnet) {
+      // Testnet thresholds (for testing with small amounts)
+      if (newTotalDeposit >= 100) newLevel = UserLevel.VVIP;
+      else if (newTotalDeposit >= 50) newLevel = UserLevel.VIP;
+      else if (newTotalDeposit >= 10) newLevel = UserLevel.INVESTOR;
+      else if (newTotalDeposit >= 5) newLevel = UserLevel.BEGINNER;
+      else if (newTotalDeposit >= 1) newLevel = UserLevel.STARTER;
+    } else {
+      // Production thresholds
+      if (newTotalDeposit >= 10000) newLevel = UserLevel.VVIP;
+      else if (newTotalDeposit >= 5000) newLevel = UserLevel.VIP;
+      else if (newTotalDeposit >= 1000) newLevel = UserLevel.INVESTOR;
+      else if (newTotalDeposit >= 500) newLevel = UserLevel.BEGINNER;
+      else if (newTotalDeposit >= 100) newLevel = UserLevel.STARTER;
+    }
 
     await prisma.user.update({
       where: { id: transaction.userId },

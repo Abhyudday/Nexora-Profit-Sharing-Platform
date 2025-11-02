@@ -17,6 +17,20 @@ export const createDeposit = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
 
+    // Check if testnet mode (lower minimum requirements for testing)
+    const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
+    const isTestnet = network.toLowerCase().includes('test') || 
+                      network.toLowerCase().includes('sepolia') || 
+                      network.toLowerCase().includes('goerli');
+    
+    const minDeposit = isTestnet ? 0.001 : 100;
+    
+    if (parseFloat(amount) < minDeposit) {
+      return res.status(400).json({ 
+        error: `Minimum deposit is ${minDeposit} ${process.env.DEPOSIT_TOKEN || 'USDT'}` 
+      });
+    }
+
     const transaction = await prisma.transaction.create({
       data: {
         userId,
@@ -25,12 +39,14 @@ export const createDeposit = async (req: AuthRequest, res: Response) => {
         status: 'PENDING',
         walletAddress,
         txHash: txHash || null,
+        remarks: isTestnet ? 'Testnet deposit' : null,
       },
     });
 
     res.status(201).json({
       message: 'Deposit request submitted. Awaiting admin approval.',
       transaction,
+      isTestnet,
     });
   } catch (error) {
     console.error('Create deposit error:', error);

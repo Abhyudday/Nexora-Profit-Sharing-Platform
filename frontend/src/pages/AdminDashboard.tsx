@@ -381,18 +381,21 @@ export default function AdminDashboard() {
             <form onSubmit={handleUpdateWallet} className="space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-blue-800">
-                  <strong>ℹ️ Important:</strong> This wallet address will be shown to all users when they make deposits. Ensure it's a valid USDT (TRC20) address.
+                  <strong>ℹ️ Important:</strong> This wallet address will be shown to all users when they make deposits.
+                </p>
+                <p className="text-xs text-blue-700 mt-2">
+                  Current network: Check your .env file for DEPOSIT_NETWORK and DEPOSIT_TOKEN settings.
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin USDT Wallet Address (TRC20)
+                  Admin Deposit Wallet Address
                 </label>
                 <input
                   type="text"
                   required
                   className="input font-mono text-sm"
-                  placeholder="Enter your TRC20 USDT wallet address"
+                  placeholder="e.g., 0x... (ETH) or TRX... (TRC20)"
                   value={depositWallet}
                   onChange={(e) => setDepositWallet(e.target.value)}
                 />
@@ -400,6 +403,16 @@ export default function AdminDashboard() {
                   Users will send their deposits to this address
                 </p>
               </div>
+              
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-xs text-gray-700 font-semibold mb-2">💡 Network Configuration</p>
+                <p className="text-xs text-gray-600 mb-1">Set in backend .env file:</p>
+                <code className="text-xs block bg-white p-2 rounded border mt-1">
+                  DEPOSIT_NETWORK=Sepolia Testnet<br/>
+                  DEPOSIT_TOKEN=ETH
+                </code>
+              </div>
+              
               <div className="flex gap-2">
                 <button
                   type="button"

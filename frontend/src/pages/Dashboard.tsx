@@ -289,10 +289,27 @@ export default function Dashboard() {
                 <div className="bg-gradient-to-br from-primary-50 to-blue-50 rounded-lg p-5 mb-6">
                   <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <Wallet className="h-5 w-5 text-primary-600" />
-                    Step 1: Send USDT to Admin Wallet
+                    Step 1: Send {depositWalletInfo.tokenName} to Admin Wallet
                   </h4>
+                  
+                  {depositWalletInfo.isTestnet && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                      <p className="text-sm text-blue-800 font-semibold">
+                        🧪 Test Network Mode
+                      </p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        You're using a testnet. Get free test tokens from a faucet to make deposits.
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="bg-white rounded-lg p-4 mb-3">
-                    <p className="text-xs text-gray-600 mb-2">Network: <span className="font-semibold text-primary-600">{depositWalletInfo.network}</span></p>
+                    <p className="text-xs text-gray-600 mb-2">
+                      Network: <span className="font-semibold text-primary-600">{depositWalletInfo.network}</span>
+                    </p>
+                    <p className="text-xs text-gray-600 mb-2">
+                      Token: <span className="font-semibold text-green-600">{depositWalletInfo.tokenName}</span>
+                    </p>
                     <p className="text-xs text-gray-600 mb-2">Admin Wallet Address:</p>
                     <div className="flex items-center gap-2">
                       <code className="flex-1 text-sm font-mono bg-gray-50 p-3 rounded border border-gray-200 break-all">
@@ -310,9 +327,10 @@ export default function Dashboard() {
                       </button>
                     </div>
                   </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <p className="text-xs text-yellow-800">
-                      <strong>⚠️ Important:</strong> Only send USDT on {depositWalletInfo.network} network. Other tokens or networks will result in loss of funds.
+                  
+                  <div className={`${depositWalletInfo.isTestnet ? 'bg-blue-50 border-blue-200' : 'bg-yellow-50 border-yellow-200'} border rounded-lg p-3`}>
+                    <p className={`text-xs ${depositWalletInfo.isTestnet ? 'text-blue-800' : 'text-yellow-800'}`}>
+                      <strong>{depositWalletInfo.isTestnet ? 'ℹ️ Note:' : '⚠️ Important:'}</strong> Only send {depositWalletInfo.tokenName} on {depositWalletInfo.network}. Other tokens or networks will result in loss of funds.
                     </p>
                   </div>
                 </div>
@@ -321,25 +339,27 @@ export default function Dashboard() {
                 <form onSubmit={handleDeposit} className="space-y-4">
                   <div className="bg-blue-50 rounded-lg p-4 mb-4">
                     <h4 className="font-semibold text-gray-900 mb-2">Step 2: Fill Deposit Details</h4>
-                    <p className="text-sm text-gray-600">After sending USDT, fill in the details below to submit your deposit request.</p>
+                    <p className="text-sm text-gray-600">After sending {depositWalletInfo.tokenName}, fill in the details below to submit your deposit request.</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Amount Sent (USDT) *
+                      Amount Sent ({depositWalletInfo.tokenName}) *
                     </label>
                     <input
                       type="number"
                       required
-                      min="100"
-                      step="0.01"
+                      min={depositWalletInfo.isTestnet ? "0.001" : "100"}
+                      step="0.0001"
                       className="input"
-                      placeholder="Minimum: $100"
+                      placeholder={depositWalletInfo.isTestnet ? "e.g., 0.1 ETH" : "Minimum: $100"}
                       value={depositForm.amount}
                       onChange={(e) => setDepositForm({ ...depositForm, amount: e.target.value })}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Minimum deposit: $100 (Starter level)
+                      {depositWalletInfo.isTestnet 
+                        ? `Test mode: Any amount accepted (min 0.001 ${depositWalletInfo.tokenName})`
+                        : 'Minimum deposit: $100 (Starter level)'}
                     </p>
                   </div>
 
@@ -351,12 +371,12 @@ export default function Dashboard() {
                       type="text"
                       required
                       className="input"
-                      placeholder="Your USDT wallet address (for verification)"
+                      placeholder={`Your ${depositWalletInfo.tokenName} wallet address (for verification)`}
                       value={depositForm.walletAddress}
                       onChange={(e) => setDepositForm({ ...depositForm, walletAddress: e.target.value })}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Enter the wallet address you sent USDT from
+                      Enter the wallet address you sent {depositWalletInfo.tokenName} from
                     </p>
                   </div>
 
@@ -379,13 +399,24 @@ export default function Dashboard() {
                   {/* Level Information */}
                   <div className="bg-purple-50 rounded-lg p-4">
                     <h4 className="font-semibold text-gray-900 mb-2">🎯 Member Levels</h4>
-                    <div className="text-xs space-y-1 text-gray-700">
-                      <p>💎 <strong>Starter:</strong> $100 - No level bonus</p>
-                      <p>🥉 <strong>Beginner:</strong> $500 - 3 level bonus</p>
-                      <p>🥈 <strong>Investor:</strong> $1,000 - 7 level bonus</p>
-                      <p>🥇 <strong>VIP:</strong> $5,000 - 10 level bonus</p>
-                      <p>👑 <strong>VVIP:</strong> $10,000 - 10 level bonus + 5% whole tree</p>
-                    </div>
+                    {depositWalletInfo.isTestnet ? (
+                      <div className="text-xs space-y-1 text-gray-700">
+                        <p className="text-blue-600 font-semibold mb-1">Test Mode (Lower Thresholds):</p>
+                        <p>💎 <strong>Starter:</strong> 1 {depositWalletInfo.tokenName} - No level bonus</p>
+                        <p>🥉 <strong>Beginner:</strong> 5 {depositWalletInfo.tokenName} - 3 level bonus</p>
+                        <p>🥈 <strong>Investor:</strong> 10 {depositWalletInfo.tokenName} - 7 level bonus</p>
+                        <p>🥇 <strong>VIP:</strong> 50 {depositWalletInfo.tokenName} - 10 level bonus</p>
+                        <p>👑 <strong>VVIP:</strong> 100 {depositWalletInfo.tokenName} - 10 level bonus + 5% whole tree</p>
+                      </div>
+                    ) : (
+                      <div className="text-xs space-y-1 text-gray-700">
+                        <p>💎 <strong>Starter:</strong> $100 - No level bonus</p>
+                        <p>🥉 <strong>Beginner:</strong> $500 - 3 level bonus</p>
+                        <p>🥈 <strong>Investor:</strong> $1,000 - 7 level bonus</p>
+                        <p>🥇 <strong>VIP:</strong> $5,000 - 10 level bonus</p>
+                        <p>👑 <strong>VVIP:</strong> $10,000 - 10 level bonus + 5% whole tree</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-3 pt-2">
