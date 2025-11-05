@@ -441,7 +441,12 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
     };
 
     while (currentReferrerId && currentLevel <= maxLevels) {
-      const uplineUser = await prisma.user.findUnique({
+      const uplineUserData: {
+        id: string;
+        level: string;
+        balance: number;
+        referrerId: string | null;
+      } | null = await prisma.user.findUnique({
         where: { id: currentReferrerId },
         select: {
           id: true,
@@ -451,9 +456,15 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
         },
       });
 
-      if (!uplineUser) break;
+      if (!uplineUserData) break;
 
-      const bonusConfig = bonusRates[uplineUser.level];
+      // Store values to avoid circular reference
+      const uplineId: string = uplineUserData.id;
+      const uplineLevel: string = uplineUserData.level;
+      const uplineBalance: number = uplineUserData.balance;
+      const nextReferrerId: string | null = uplineUserData.referrerId;
+
+      const bonusConfig = bonusRates[uplineLevel];
       
       // Check if this upline qualifies for bonus at this level
       if (bonusConfig && currentLevel <= bonusConfig.maxLevel) {
@@ -461,29 +472,29 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
 
         // Add bonus to upline's balance
         await prisma.user.update({
-          where: { id: uplineUser.id },
+          where: { id: uplineId },
           data: {
-            balance: uplineUser.balance + bonusAmount,
+            balance: uplineBalance + bonusAmount,
           },
         });
 
         // Record bonus history
         await prisma.bonusHistory.create({
           data: {
-            userId: uplineUser.id,
+            userId: uplineId,
             bonusAmount,
             bonusType: 'NETWORK_LEVEL_BONUS',
             sourceUserId: userId,
             level: currentLevel,
             calculatedFrom: profitAmount,
-            description: `Level ${currentLevel} bonus from ${user} (${bonusConfig.rate * 100}%)`,
+            description: `Level ${currentLevel} bonus (${bonusConfig.rate * 100}%)`,
           },
         });
 
         // Create transaction record
         await prisma.transaction.create({
           data: {
-            userId: uplineUser.id,
+            userId: uplineId,
             amount: bonusAmount,
             type: 'BONUS',
             status: 'COMPLETED',
@@ -495,7 +506,7 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
       }
 
       // Move to next level
-      currentReferrerId = uplineUser.referrerId || null;
+      currentReferrerId = nextReferrerId || null;
       currentLevel++;
     }
 
