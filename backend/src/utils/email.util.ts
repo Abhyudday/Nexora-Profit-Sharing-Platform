@@ -1,16 +1,30 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Check if email is configured
+const isEmailConfigured = !!(
+  process.env.EMAIL_HOST &&
+  process.env.EMAIL_USER &&
+  process.env.EMAIL_PASSWORD
+);
+
+const transporter = isEmailConfigured
+  ? nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    })
+  : null;
 
 export const sendVerificationEmail = async (email: string, token: string) => {
+  if (!transporter) {
+    console.warn('⚠️  Email not configured - skipping verification email to', email);
+    return;
+  }
+
   const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
   await transporter.sendMail({
@@ -38,6 +52,11 @@ export const sendDepositApprovedEmail = async (
   email: string,
   amount: number
 ) => {
+  if (!transporter) {
+    console.warn('⚠️  Email not configured - skipping deposit approval email to', email);
+    return;
+  }
+
   await transporter.sendMail({
     from: process.env.EMAIL_FROM,
     to: email,
@@ -56,6 +75,11 @@ export const sendWithdrawalApprovedEmail = async (
   email: string,
   amount: number
 ) => {
+  if (!transporter) {
+    console.warn('⚠️  Email not configured - skipping withdrawal approval email to', email);
+    return;
+  }
+
   await transporter.sendMail({
     from: process.env.EMAIL_FROM,
     to: email,
@@ -71,6 +95,12 @@ export const sendWithdrawalApprovedEmail = async (
 };
 
 export const sendPasswordResetEmail = async (email: string, token: string) => {
+  if (!transporter) {
+    console.warn('⚠️  Email not configured - skipping password reset email to', email);
+    console.warn('📝 Password reset token:', token);
+    return;
+  }
+
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
   await transporter.sendMail({
