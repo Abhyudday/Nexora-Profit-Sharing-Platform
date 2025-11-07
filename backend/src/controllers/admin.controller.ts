@@ -68,7 +68,18 @@ export const approveDeposit = async (req: AuthRequest, res: Response) => {
 
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            level: true,
+            balance: true,
+            totalDeposit: true,
+          },
+        },
+      },
     });
 
     if (!transaction) {
@@ -159,7 +170,18 @@ export const approveWithdrawal = async (req: AuthRequest, res: Response) => {
 
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            level: true,
+            balance: true,
+            totalDeposit: true,
+          },
+        },
+      },
     });
 
     if (!transaction) {
@@ -229,7 +251,18 @@ export const rejectTransaction = async (req: AuthRequest, res: Response) => {
 
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            level: true,
+            balance: true,
+            totalDeposit: true,
+          },
+        },
+      },
     });
 
     if (!transaction) {
@@ -343,6 +376,14 @@ export const distributeProfit = async (req: AuthRequest, res: Response) => {
     const users = await prisma.user.findMany({
       where: {
         balance: { gt: 0 },
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        level: true,
+        balance: true,
+        totalDeposit: true,
       },
     });
 
@@ -524,6 +565,14 @@ export const distributeBonus = async (req: AuthRequest, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        level: true,
+        balance: true,
+        totalDeposit: true,
+      },
     });
 
     if (!user) {
