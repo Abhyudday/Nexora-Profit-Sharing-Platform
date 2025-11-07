@@ -109,6 +109,9 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findFirst({
       where: { verificationToken: token },
+      select: {
+        id: true,
+      },
     });
 
     if (!user) {
@@ -140,6 +143,15 @@ export const login = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password: true,
+        level: true,
+        isAdmin: true,
+        emailVerified: true,
+      },
     });
 
     if (!user) {
@@ -186,6 +198,10 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+      },
     });
 
     if (!user) {
@@ -231,6 +247,9 @@ export const resetPassword = async (req: Request, res: Response) => {
       where: {
         resetToken: token,
         resetTokenExpiry: { gt: new Date() },
+      },
+      select: {
+        id: true,
       },
     });
 
