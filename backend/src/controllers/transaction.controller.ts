@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { checkWithdrawalTimeWindow } from '../utils/withdrawal.util';
 
 const prisma = new PrismaClient();
 
@@ -59,8 +60,25 @@ export const createWithdrawal = async (req: AuthRequest, res: Response) => {
     const userId = req.userId!;
     const { amount, walletAddress } = req.body;
 
+    // Check withdrawal time window (06:01 AM - 12:00 PM GMT+7)
+    const timeStatus = checkWithdrawalTimeWindow();
+    if (!timeStatus.isEnabled) {
+      return res.status(400).json({ 
+        error: timeStatus.message,
+        nextEnabledTime: timeStatus.nextEnabledTime,
+      });
+    }
+
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    // Check minimum withdrawal amount ($10)
+    const minWithdrawal = 10;
+    if (parseFloat(amount) < minWithdrawal) {
+      return res.status(400).json({ 
+        error: `Minimum withdrawal amount is $${minWithdrawal}` 
+      });
     }
 
     if (!walletAddress) {

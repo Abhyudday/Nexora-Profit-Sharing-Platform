@@ -4,6 +4,7 @@ import {
   updateDepositWallet, 
   getAllConfig,
   getWithdrawalStatus,
+  getWithdrawalTimeWindow,
   toggleWithdrawal,
   updateConfig
 } from '../controllers/config.controller';
@@ -14,6 +15,7 @@ const router = Router();
 // Public routes
 router.get('/deposit-wallet', getDepositWallet);
 router.get('/withdrawal-status', getWithdrawalStatus);
+router.get('/withdrawal-time-window', getWithdrawalTimeWindow);
 
 // Admin routes
 router.put('/deposit-wallet', authenticate, requireAdmin, updateDepositWallet);

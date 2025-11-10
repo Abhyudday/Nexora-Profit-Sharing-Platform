@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [withdrawForm, setWithdrawForm] = useState({ amount: '', walletAddress: '' });
   const [depositWalletInfo, setDepositWalletInfo] = useState<any>(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
+  const [withdrawalTimeStatus, setWithdrawalTimeStatus] = useState<any>(null);
 
   useEffect(() => {
     fetchDashboard();
@@ -50,6 +51,17 @@ export default function Dashboard() {
     }
   };
 
+  const fetchWithdrawalTimeStatus = async () => {
+    try {
+      const { data } = await api.get('/config/withdrawal-time-window');
+      setWithdrawalTimeStatus(data);
+      return data;
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to fetch withdrawal status');
+      return null;
+    }
+  };
+
   const handleOpenDepositModal = () => {
     setShowDepositModal(true);
     fetchDepositWallet();
@@ -66,6 +78,15 @@ export default function Dashboard() {
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to submit deposit');
     }
+  };
+
+  const handleOpenWithdrawModal = async () => {
+    const timeStatus = await fetchWithdrawalTimeStatus();
+    if (!timeStatus?.isEnabled) {
+      toast.error(timeStatus?.message || 'Withdrawals are currently disabled');
+      return;
+    }
+    setShowWithdrawModal(true);
   };
 
   const handleWithdraw = async (e: React.FormEvent) => {
@@ -195,7 +216,7 @@ export default function Dashboard() {
                 <span className="font-medium">Deposit</span>
               </button>
               <button
-                onClick={() => setShowWithdrawModal(true)}
+                onClick={handleOpenWithdrawModal}
                 className="flex items-center justify-center gap-2 p-4 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors"
               >
                 <ArrowUpRight className="h-5 w-5" />
@@ -457,6 +478,22 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold mb-4">Withdraw USDT</h3>
+            
+            {/* Withdrawal Time Info */}
+            {withdrawalTimeStatus && (
+              <div className={`mb-4 p-3 rounded-lg ${withdrawalTimeStatus.isEnabled ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                <p className={`text-sm font-semibold ${withdrawalTimeStatus.isEnabled ? 'text-green-800' : 'text-yellow-800'}`}>
+                  {withdrawalTimeStatus.isEnabled ? '✓ Withdrawals Enabled' : '⚠️ Withdrawal Time Window'}
+                </p>
+                <p className="text-xs text-gray-700 mt-1">
+                  Enabled: {withdrawalTimeStatus.timeWindow}
+                </p>
+                <p className="text-xs text-gray-700 mt-1">
+                  Minimum withdrawal: ${withdrawalTimeStatus.minWithdrawal || 10}
+                </p>
+              </div>
+            )}
+            
             <form onSubmit={handleWithdraw} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -465,7 +502,7 @@ export default function Dashboard() {
                 <input
                   type="number"
                   required
-                  min="0.01"
+                  min="10"
                   step="0.01"
                   className="input"
                   value={withdrawForm.amount}
@@ -473,6 +510,9 @@ export default function Dashboard() {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Available: ${dashboardData?.user?.balance?.toFixed(2) || '0.00'}
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  Minimum: $10.00
                 </p>
               </div>
               <div>
@@ -483,6 +523,7 @@ export default function Dashboard() {
                   type="text"
                   required
                   className="input"
+                  placeholder="Enter your USDT wallet address"
                   value={withdrawForm.walletAddress}
                   onChange={(e) => setWithdrawForm({ ...withdrawForm, walletAddress: e.target.value })}
                 />

@@ -139,6 +139,26 @@ export const getWithdrawalStatus = async (req: Request, res: Response) => {
   }
 };
 
+// Public endpoint to check withdrawal time window (GMT+7)
+export const getWithdrawalTimeWindow = async (req: Request, res: Response) => {
+  try {
+    const { checkWithdrawalTimeWindow } = await import('../utils/withdrawal.util');
+    const timeStatus = checkWithdrawalTimeWindow();
+    
+    res.json({
+      isEnabled: timeStatus.isEnabled,
+      message: timeStatus.message,
+      nextEnabledTime: timeStatus.nextEnabledTime,
+      nextDisabledTime: timeStatus.nextDisabledTime,
+      timeWindow: '06:01 AM - 12:00 PM GMT+7',
+      minWithdrawal: 10,
+    });
+  } catch (error) {
+    console.error('Get withdrawal time window error:', error);
+    res.status(500).json({ error: 'Failed to fetch withdrawal time window' });
+  }
+};
+
 // Admin endpoint to toggle withdrawal system
 export const toggleWithdrawal = async (req: AuthRequest, res: Response) => {
   try {

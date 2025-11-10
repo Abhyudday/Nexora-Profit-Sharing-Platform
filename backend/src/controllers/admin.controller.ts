@@ -6,6 +6,7 @@ import {
   sendWithdrawalApprovedEmail,
 } from '../utils/email.util';
 import { getLevelBonusLevels, getLevelRequirement } from '../utils/helpers';
+import { updateUserRank, calculateRankFromBalance } from '../utils/rank.util';
 
 const prisma = new PrismaClient();
 
@@ -22,13 +23,24 @@ export const getPendingDeposits = async (req: AuthRequest, res: Response) => {
             id: true,
             username: true,
             email: true,
+            balance: true,
+            level: true,
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(deposits);
+    // Include wallet details in response
+    const depositsWithDetails = deposits.map(deposit => ({
+      ...deposit,
+      walletDetails: {
+        walletAddress: deposit.walletAddress,
+        txHash: deposit.txHash,
+      },
+    }));
+
+    res.json(depositsWithDetails);
   } catch (error) {
     console.error('Get pending deposits error:', error);
     res.status(500).json({ error: 'Failed to fetch pending deposits' });
@@ -48,13 +60,23 @@ export const getPendingWithdrawals = async (req: AuthRequest, res: Response) => 
             id: true,
             username: true,
             email: true,
+            balance: true,
+            level: true,
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(withdrawals);
+    // Include wallet details in response
+    const withdrawalsWithDetails = withdrawals.map(withdrawal => ({
+      ...withdrawal,
+      walletDetails: {
+        walletAddress: withdrawal.walletAddress,
+      },
+    }));
+
+    res.json(withdrawalsWithDetails);
   } catch (error) {
     console.error('Get pending withdrawals error:', error);
     res.status(500).json({ error: 'Failed to fetch pending withdrawals' });
@@ -105,6 +127,7 @@ export const approveDeposit = async (req: AuthRequest, res: Response) => {
     });
 
     const newTotalDeposit = transaction.user.totalDeposit + transaction.amount;
+    const newBalance = transaction.user.balance + transaction.amount;
 
     // Check if testnet mode (use lower thresholds for testing)
     const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
@@ -112,28 +135,13 @@ export const approveDeposit = async (req: AuthRequest, res: Response) => {
                       network.toLowerCase().includes('sepolia') || 
                       network.toLowerCase().includes('goerli');
 
-    // Update user level based on deposit (testnet uses 1/100th of production values)
-    let newLevel = transaction.user.level;
-    if (isTestnet) {
-      // Testnet thresholds (for testing with small amounts)
-      if (newTotalDeposit >= 100) newLevel = UserLevel.VVIP;
-      else if (newTotalDeposit >= 50) newLevel = UserLevel.VIP;
-      else if (newTotalDeposit >= 10) newLevel = UserLevel.INVESTOR;
-      else if (newTotalDeposit >= 5) newLevel = UserLevel.BEGINNER;
-      else if (newTotalDeposit >= 1) newLevel = UserLevel.STARTER;
-    } else {
-      // Production thresholds
-      if (newTotalDeposit >= 10000) newLevel = UserLevel.VVIP;
-      else if (newTotalDeposit >= 5000) newLevel = UserLevel.VIP;
-      else if (newTotalDeposit >= 1000) newLevel = UserLevel.INVESTOR;
-      else if (newTotalDeposit >= 500) newLevel = UserLevel.BEGINNER;
-      else if (newTotalDeposit >= 100) newLevel = UserLevel.STARTER;
-    }
+    // Calculate rank based on new balance (not total deposit)
+    const newLevel = calculateRankFromBalance(newBalance, isTestnet);
 
     await prisma.user.update({
       where: { id: transaction.userId },
       data: {
-        balance: transaction.user.balance + transaction.amount,
+        balance: newBalance,
         totalDeposit: newTotalDeposit,
         level: newLevel,
       },
@@ -213,10 +221,22 @@ export const approveWithdrawal = async (req: AuthRequest, res: Response) => {
     });
 
     // Deduct from user balance
+    const newBalance = transaction.user.balance - transaction.amount;
+    
+    // Check if testnet mode
+    const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
+    const isTestnet = network.toLowerCase().includes('test') || 
+                      network.toLowerCase().includes('sepolia') || 
+                      network.toLowerCase().includes('goerli');
+    
+    // Calculate new rank based on updated balance (can be downgraded)
+    const newLevel = calculateRankFromBalance(newBalance, isTestnet);
+    
     await prisma.user.update({
       where: { id: transaction.userId },
       data: {
-        balance: transaction.user.balance - transaction.amount,
+        balance: newBalance,
+        level: newLevel,
       },
     });
 
@@ -388,13 +408,18 @@ export const distributeProfit = async (req: AuthRequest, res: Response) => {
     });
 
     const profitPercent = tradingResult.profitPercent / 100;
-    const investorShare = parseFloat(process.env.INVESTOR_PROFIT_SHARE || '0.6');
 
     let totalBonusDistributed = 0;
+    let totalProfitDistributed = 0;
 
-    // Distribute profit to each user
+    // Distribute profit to each user based on their rank
     for (const user of users) {
-      const userProfit = user.balance * profitPercent * investorShare;
+      // Get profit share ratio based on user's rank
+      const { user: userSharePercent } = await import('../utils/rank.util').then(m => m.getProfitShareRatio(user.level));
+      const userShare = userSharePercent / 100; // Convert to decimal
+      
+      const userProfit = user.balance * profitPercent * userShare;
+      totalProfitDistributed += userProfit;
 
       await prisma.user.update({
         where: { id: user.id },
@@ -424,7 +449,7 @@ export const distributeProfit = async (req: AuthRequest, res: Response) => {
       });
 
       // Auto-distribute network leveling bonus
-      const bonusDistributed = await distributeNetworkBonus(user.id, userProfit);
+      const bonusDistributed = await distributeNetworkBonus(user.id, userProfit, tradingResult.tradingDate);
       totalBonusDistributed += bonusDistributed;
     }
 
@@ -456,7 +481,7 @@ export const distributeProfit = async (req: AuthRequest, res: Response) => {
 };
 
 // Helper function to distribute network bonus based on user level
-async function distributeNetworkBonus(userId: string, profitAmount: number): Promise<number> {
+async function distributeNetworkBonus(userId: string, profitAmount: number, tradingDate?: Date): Promise<number> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -467,19 +492,17 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
       return 0; // No upline, no bonus to distribute
     }
 
+    // Get configurable level bonus percentages
+    const { getLevelBonusPercentages } = await import('../utils/rank.util');
+    const levelBonuses = await getLevelBonusPercentages();
+
     let totalDistributed = 0;
     let currentReferrerId: string | null = user.referrerId;
     let currentLevel = 1;
     const maxLevels = 10;
-
-    // Level-based bonus percentages
-    const bonusRates: { [key: string]: { rate: number; maxLevel: number } } = {
-      'STARTER': { rate: 0.02, maxLevel: 1 },    // 2% for 1 level
-      'BEGINNER': { rate: 0.03, maxLevel: 3 },   // 3% for 3 levels
-      'INVESTOR': { rate: 0.05, maxLevel: 5 },   // 5% for 5 levels
-      'VIP': { rate: 0.07, maxLevel: 7 },        // 7% for 7 levels
-      'VVIP': { rate: 0.10, maxLevel: 10 },      // 10% for 10 levels
-    };
+    
+    // Store bonus details for the source user
+    const bonusDetails: any = {};
 
     while (currentReferrerId && currentLevel <= maxLevels) {
       const uplineUserData: {
@@ -505,11 +528,20 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
       const uplineBalance: number = uplineUserData.balance;
       const nextReferrerId: string | null = uplineUserData.referrerId;
 
-      const bonusConfig = bonusRates[uplineLevel];
+      // Check if upline is eligible for this level bonus
+      const { isEligibleForLevelBonus, getRankConfig } = await import('../utils/rank.util');
+      const isEligible = isEligibleForLevelBonus(uplineLevel as any, currentLevel);
       
-      // Check if this upline qualifies for bonus at this level
-      if (bonusConfig && currentLevel <= bonusConfig.maxLevel) {
-        const bonusAmount = profitAmount * bonusConfig.rate;
+      if (isEligible) {
+        // Get the bonus percentage for this level from config
+        const levelBonus = levelBonuses.find(b => b.level === currentLevel);
+        if (!levelBonus) continue;
+        
+        const bonusRate = levelBonus.percentage / 100;
+        
+        // Calculate bonus from company's profit share
+        const companyShare = getRankConfig(uplineLevel as any).profitShareCompany / 100;
+        const bonusAmount = profitAmount * companyShare * bonusRate;
 
         // Add bonus to upline's balance
         await prisma.user.update({
@@ -519,7 +551,7 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
           },
         });
 
-        // Record bonus history
+        // Record bonus history with detailed info
         await prisma.bonusHistory.create({
           data: {
             userId: uplineId,
@@ -528,7 +560,13 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
             sourceUserId: userId,
             level: currentLevel,
             calculatedFrom: profitAmount,
-            description: `Level ${currentLevel} bonus (${bonusConfig.rate * 100}%)`,
+            tradingDate: tradingDate || new Date(),
+            bonusDetails: JSON.stringify({
+              level: currentLevel,
+              percentage: levelBonus.percentage,
+              sourceProfit: profitAmount,
+            }),
+            description: `Level ${currentLevel} bonus (${levelBonus.percentage}%)`,
           },
         });
 
@@ -539,11 +577,12 @@ async function distributeNetworkBonus(userId: string, profitAmount: number): Pro
             amount: bonusAmount,
             type: 'BONUS',
             status: 'COMPLETED',
-            remarks: `Level ${currentLevel} network bonus`,
+            remarks: `Level ${currentLevel} network bonus (${levelBonus.percentage}%)`,
           },
         });
 
         totalDistributed += bonusAmount;
+        bonusDetails[`level${currentLevel}`] = bonusAmount;
       }
 
       // Move to next level
