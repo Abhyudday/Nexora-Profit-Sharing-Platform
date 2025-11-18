@@ -1,6 +1,6 @@
 -- AlterTable
-ALTER TABLE "BonusHistory" ADD COLUMN "tradingDate" TIMESTAMP(3),
-ADD COLUMN "bonusDetails" TEXT;
+ALTER TABLE "BonusHistory" ADD COLUMN IF NOT EXISTS "tradingDate" TIMESTAMP(3);
+ALTER TABLE "BonusHistory" ADD COLUMN IF NOT EXISTS "bonusDetails" TEXT;
 
 -- CreateIndex
-CREATE INDEX "BonusHistory_tradingDate_idx" ON "BonusHistory"("tradingDate");
+CREATE INDEX IF NOT EXISTS "BonusHistory_tradingDate_idx" ON "BonusHistory"("tradingDate");
