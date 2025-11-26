@@ -1093,10 +1093,22 @@ export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Insufficient balance for deduction' });
     }
 
-    // Update user balance
+    // Check if testnet mode for rank calculation
+    const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
+    const isTestnet = network.toLowerCase().includes('test') || 
+                      network.toLowerCase().includes('sepolia') || 
+                      network.toLowerCase().includes('goerli');
+
+    // Calculate new rank based on new balance
+    const newLevel = calculateRankFromBalance(newBalance, isTestnet);
+
+    // Update user balance and rank
     await prisma.user.update({
       where: { id: userId },
-      data: { balance: newBalance },
+      data: { 
+        balance: newBalance,
+        level: newLevel,
+      },
     });
 
     // Create transaction record
@@ -1166,10 +1178,74 @@ export const getRecentTransactions = async (req: AuthRequest, res: Response) => 
   }
 };
 
+export const recalculateAllRanks = async (req: AuthRequest, res: Response) => {
+  try {
+    const adminId = req.userId!;
+
+    // Get all users
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        balance: true,
+        level: true,
+      },
+    });
+
+    // Check if testnet mode
+    const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
+    const isTestnet = network.toLowerCase().includes('test') || 
+                      network.toLowerCase().includes('sepolia') || 
+                      network.toLowerCase().includes('goerli');
+
+    let updatedCount = 0;
+    const updates: any[] = [];
+
+    // Recalculate rank for each user
+    for (const user of users) {
+      const correctLevel = calculateRankFromBalance(user.balance, isTestnet);
+      
+      if (correctLevel !== user.level) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { level: correctLevel },
+        });
+        
+        updatedCount++;
+        updates.push({
+          username: user.username,
+          oldLevel: user.level,
+          newLevel: correctLevel,
+          balance: user.balance,
+        });
+      }
+    }
+
+    // Log admin action
+    await prisma.adminAction.create({
+      data: {
+        adminId,
+        actionType: 'RECALCULATE_RANKS',
+        details: `Recalculated ranks for ${users.length} users. ${updatedCount} ranks were updated.`,
+      },
+    });
+
+    res.json({
+      message: 'Ranks recalculated successfully',
+      totalUsers: users.length,
+      updatedCount,
+      updates,
+    });
+  } catch (error) {
+    console.error('Recalculate ranks error:', error);
+    res.status(500).json({ error: 'Failed to recalculate ranks' });
+  }
+};
+
 // Helper function to build network tree for admin view
 async function buildAdminNetworkTree(userId: string, maxLevel: number) {
   const buildLevel = async (id: string, currentLevel: number): Promise<any> => {
-    if (currentLevel >= maxLevel) return null;
+    if (currentLevel >= maxLevel) return [];
 
     const referrals = await prisma.user.findMany({
       where: { referrerId: id },
@@ -1208,6 +1284,10 @@ async function buildAdminNetworkTree(userId: string, maxLevel: number) {
       createdAt: true,
     },
   });
+
+  if (!rootUser) {
+    return null;
+  }
 
   return {
     ...rootUser,

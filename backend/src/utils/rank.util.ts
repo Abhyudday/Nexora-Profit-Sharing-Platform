@@ -81,18 +81,27 @@ export const DEFAULT_LEVEL_BONUSES = [
 
 /**
  * Calculate user rank based on current balance
+ * Rank boundaries:
+ * - STARTER: $100 - $499
+ * - BEGINNER: $500 - $999
+ * - INVESTOR: $1000 - $4999
+ * - VIP: $5000 - $9999
+ * - VVIP: $10000+
  */
 export const calculateRankFromBalance = (balance: number, isTestnet: boolean = false): UserLevel => {
   // For testnet, use 1/100th of production values
   const adjustedBalance = isTestnet ? balance * 100 : balance;
   
-  if (adjustedBalance >= 10000) return UserLevel.VVIP;
-  if (adjustedBalance >= 5000) return UserLevel.VIP;
-  if (adjustedBalance >= 1000) return UserLevel.INVESTOR;
-  if (adjustedBalance >= 500) return UserLevel.BEGINNER;
-  if (adjustedBalance >= 100) return UserLevel.STARTER;
+  // Round to 2 decimal places to avoid floating point issues
+  const roundedBalance = Math.round(adjustedBalance * 100) / 100;
   
-  // Below minimum balance, keep as STARTER
+  if (roundedBalance >= 10000) return UserLevel.VVIP;
+  if (roundedBalance >= 5000) return UserLevel.VIP;
+  if (roundedBalance >= 1000) return UserLevel.INVESTOR;
+  if (roundedBalance >= 500) return UserLevel.BEGINNER;
+  if (roundedBalance >= 100) return UserLevel.STARTER;
+  
+  // Below minimum balance ($100), keep as STARTER
   return UserLevel.STARTER;
 };
 

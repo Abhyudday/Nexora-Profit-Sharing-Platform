@@ -18,6 +18,7 @@ import {
   getMemberDetails,
   adjustUserBalance,
   getRecentTransactions,
+  recalculateAllRanks,
 } from '../controllers/admin.controller';
 
 const router = Router();
@@ -42,5 +43,6 @@ router.post('/trading-result/:tradingResultId/distribute', distributeProfit);
 router.post('/bonus/:userId/distribute', distributeBonus);
 router.post('/ranking-level', updateRankingLevel);
 router.post('/user/:userId/adjust-balance', adjustUserBalance);
+router.post('/recalculate-ranks', recalculateAllRanks);
 
 export default router;
