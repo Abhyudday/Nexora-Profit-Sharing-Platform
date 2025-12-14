@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, DollarSign, TrendingUp, ArrowLeft, 
-  Check, X, Calendar, Wallet, Settings, Network, Eye
+  Check, X, Calendar, Wallet, Settings, Network, Eye, Copy
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
@@ -19,6 +19,7 @@ export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDeposit, setSelectedDeposit] = useState<any>(null);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [memberDetails, setMemberDetails] = useState<any>(null);
   const [showBalanceAdjustModal, setShowBalanceAdjustModal] = useState(false);
@@ -230,12 +231,12 @@ export default function AdminDashboard() {
           <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Deposits</p>
-                <p className="text-2xl font-bold text-green-600">
-                  ${stats?.totalDeposits?.toFixed(2) || '0.00'}
+                <p className="text-sm text-gray-600">Net Deposit</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  ${stats?.netDeposit?.toFixed(2) || '0.00'}
                 </p>
               </div>
-              <TrendingUp className="h-10 w-10 text-green-600" />
+              <TrendingUp className="h-10 w-10 text-blue-600" />
             </div>
           </div>
 
@@ -396,14 +397,23 @@ export default function AdminDashboard() {
                           <button
                             onClick={() => handleApproveWithdrawal(tx.id)}
                             className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            title="Approve"
                           >
                             <Check className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleReject(tx.id)}
                             className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            title="Reject"
                           >
                             <X className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => setSelectedWithdrawal(tx)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            title="View Details"
+                          >
+                            <Eye className="h-5 w-5" />
                           </button>
                         </div>
                       </td>
@@ -525,11 +535,17 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3 text-sm font-medium">{user.username}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
                           <td className="px-4 py-3 text-sm">
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary-100 text-primary-800">
-                              {user.level}
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.balance === 0 
+                                ? 'bg-red-100 text-red-800' 
+                                : 'bg-primary-100 text-primary-800'
+                            }`}>
+                              {user.balance === 0 ? 'INACTIVE' : user.level}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm font-semibold">${user.balance.toFixed(2)}</td>
+                          <td className={`px-4 py-3 text-sm font-semibold ${user.balance === 0 ? 'text-red-600' : ''}`}>
+                            ${user.balance.toFixed(2)}
+                          </td>
                           <td className="px-4 py-3 text-sm">${user.totalDeposit.toFixed(2)}</td>
                           <td className="px-4 py-3 text-sm">
                             <button
@@ -1008,6 +1024,148 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Withdrawal Details Modal */}
+      {selectedWithdrawal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-2xl font-bold">Withdrawal Details</h3>
+              <button
+                onClick={() => setSelectedWithdrawal(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">User Information</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-600">Username</p>
+                    <p className="font-semibold">{selectedWithdrawal.user?.username}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Email</p>
+                    <p className="font-semibold text-sm">{selectedWithdrawal.user?.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">User ID</p>
+                    <p className="font-mono text-sm">{selectedWithdrawal.user?.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Level</p>
+                    <p className="font-semibold">{selectedWithdrawal.user?.level}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Transaction Details</h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-600">Amount</p>
+                    <p className="text-2xl font-bold text-green-600">${selectedWithdrawal.amount?.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Date & Time</p>
+                    <p className="font-semibold">
+                      {new Date(selectedWithdrawal.createdAt).toLocaleString('en-US', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Status</p>
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                      selectedWithdrawal.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                      selectedWithdrawal.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {selectedWithdrawal.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Wallet Information</h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-600 mb-2">Wallet Address (Full)</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={selectedWithdrawal.walletAddress || 'N/A'}
+                        className="input flex-1 font-mono text-sm"
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedWithdrawal.walletAddress || '');
+                          toast.success('Wallet address copied!');
+                        }}
+                        className="btn btn-primary"
+                        disabled={!selectedWithdrawal.walletAddress}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Click copy button to copy full address</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Network Type</p>
+                    <p className="font-semibold text-purple-700">TRC20 (Tron Network)</p>
+                  </div>
+                </div>
+              </div>
+
+              {selectedWithdrawal.remarks && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-sm text-gray-700 mb-2">Remarks</h4>
+                  <p className="text-sm text-gray-600">{selectedWithdrawal.remarks}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-2">
+              {selectedWithdrawal.status === 'PENDING' && (
+                <>
+                  <button
+                    onClick={() => {
+                      handleApproveWithdrawal(selectedWithdrawal.id);
+                      setSelectedWithdrawal(null);
+                    }}
+                    className="btn btn-primary flex-1"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Approve Withdrawal
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleReject(selectedWithdrawal.id);
+                      setSelectedWithdrawal(null);
+                    }}
+                    className="btn btn-secondary flex-1"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Reject
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setSelectedWithdrawal(null)}
+                className="btn btn-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Network Tree Modal */}
       {showNetworkTreeModal && selectedMember && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -1031,20 +1189,68 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Root User</p>
-                      <p className="font-bold text-lg">{networkTree.user.username}</p>
-                      <p className="text-xs text-gray-500">ID: {networkTree.user.id}</p>
+                      <p className="font-bold text-lg">{networkTree.root?.username || networkTree.user?.username}</p>
+                      <p className="text-xs text-gray-500">ID: {networkTree.root?.id || networkTree.user?.id}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-600">Balance</p>
-                      <p className="font-bold text-lg text-green-600">${networkTree.user.balance?.toFixed(2)}</p>
-                      <p className="text-xs text-gray-500">Level: {networkTree.user.level}</p>
+                      <p className="font-bold text-lg text-green-600">${(networkTree.root?.balance || networkTree.user?.balance)?.toFixed(2)}</p>
+                      <p className="text-xs text-gray-500">
+                        Ranking: {networkTree.root?.ranking || networkTree.user?.level}
+                        {(networkTree.root?.balance === 0 || networkTree.user?.balance === 0) && 
+                          <span className="ml-2 text-red-600 font-semibold">INACTIVE</span>
+                        }
+                      </p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="border-l-2 border-gray-300 ml-4 pl-4">
-                  {renderNetworkTree(networkTree.networkTree, 1)}
-                </div>
+                {networkTree.levels && networkTree.levels.length > 0 ? (
+                  <div className="space-y-4">
+                    {networkTree.levels.map((levelData: any) => (
+                      <div key={levelData.level} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                          <h4 className="font-bold text-lg text-gray-900">
+                            Level {levelData.level}
+                          </h4>
+                          <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            {levelData.count} {levelData.count === 1 ? 'Member' : 'Members'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                          {levelData.users.map((user: any) => (
+                            <div key={user.id} className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sm">{user.username}</p>
+                                  <p className="text-xs text-gray-500">ID: {user.id.substring(0, 8)}...</p>
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    Ranking: <span className={user.balance === 0 ? 'text-red-600 font-semibold' : 'font-medium'}>
+                                      {user.balance === 0 ? 'INACTIVE' : user.ranking}
+                                    </span>
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-bold ${user.balance === 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    ${user.balance?.toFixed(2)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : networkTree.networkTree ? (
+                  <div className="border-l-2 border-gray-300 ml-4 pl-4">
+                    {renderNetworkTree(networkTree.networkTree, 1)}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No network members found
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">

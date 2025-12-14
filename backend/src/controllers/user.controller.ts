@@ -120,7 +120,7 @@ export const getNetworkTree = async (req: AuthRequest, res: Response) => {
     const userId = req.userId!;
     const maxLevel = 10;
 
-    const networkTree = await buildNetworkTree(userId, maxLevel);
+    const networkTree = await buildNetworkTreeBFS(userId, maxLevel);
 
     res.json(networkTree);
   } catch (error) {
@@ -437,5 +437,73 @@ async function buildNetworkTree(userId: string, maxLevel: number) {
   return {
     ...rootUser,
     children: await buildLevel(userId, 0),
+  };
+}
+
+async function buildNetworkTreeBFS(userId: string, maxLevel: number) {
+  const rootUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      balance: true,
+      level: true,
+    },
+  });
+
+  if (!rootUser) {
+    return null;
+  }
+
+  const levels: any[] = [];
+  let currentLevelUserIds = [userId];
+
+  for (let levelNum = 1; levelNum <= maxLevel; levelNum++) {
+    if (currentLevelUserIds.length === 0) break;
+
+    const referrals = await prisma.user.findMany({
+      where: {
+        referrerId: { in: currentLevelUserIds },
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        balance: true,
+        level: true,
+        referrerId: true,
+      },
+    });
+
+    if (referrals.length > 0) {
+      levels.push({
+        level: levelNum,
+        count: referrals.length,
+        users: referrals.map(user => ({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          balance: user.balance,
+          ranking: user.level,
+          referrerId: user.referrerId,
+        })),
+      });
+
+      currentLevelUserIds = referrals.map(r => r.id);
+    } else {
+      break;
+    }
+  }
+
+  return {
+    root: {
+      id: rootUser.id,
+      username: rootUser.username,
+      email: rootUser.email,
+      balance: rootUser.balance,
+      ranking: rootUser.level,
+    },
+    levels,
   };
 }

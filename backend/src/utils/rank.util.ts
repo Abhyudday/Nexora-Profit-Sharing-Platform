@@ -48,8 +48,8 @@ export const RANK_CONFIGS: RankConfig[] = [
     minBalance: 5000,
     maxBalance: 9999,
     bonusLevels: 10,
-    profitShareUser: 80,
-    profitShareCompany: 20,
+    profitShareUser: 70,
+    profitShareCompany: 30,
     levelName: 'VIP',
   },
   {
@@ -57,8 +57,8 @@ export const RANK_CONFIGS: RankConfig[] = [
     minBalance: 10000,
     maxBalance: Infinity,
     bonusLevels: 10,
-    profitShareUser: 80,
-    profitShareCompany: 20,
+    profitShareUser: 70,
+    profitShareCompany: 30,
     levelName: 'VVIP',
   },
 ];

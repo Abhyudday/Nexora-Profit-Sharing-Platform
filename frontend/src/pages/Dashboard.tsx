@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
   Wallet, Users, TrendingUp, Gift, LogOut, Copy, 
-  ArrowUpRight, ArrowDownLeft, History 
+  ArrowUpRight, ArrowDownLeft, History, X 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [withdrawalTimeStatus, setWithdrawalTimeStatus] = useState<any>(null);
   const [bonusBreakdown, setBonusBreakdown] = useState<any>(null);
+  const [showNetworkTreeModal, setShowNetworkTreeModal] = useState(false);
+  const [networkTree, setNetworkTree] = useState<any>(null);
 
   useEffect(() => {
     fetchDashboard();
@@ -71,6 +73,20 @@ export default function Dashboard() {
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to fetch bonus breakdown');
     }
+  };
+
+  const fetchNetworkTree = async () => {
+    try {
+      const { data } = await api.get('/user/network-tree');
+      setNetworkTree(data);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to fetch network tree');
+    }
+  };
+
+  const handleOpenNetworkTree = () => {
+    setShowNetworkTreeModal(true);
+    fetchNetworkTree();
   };
 
   useEffect(() => {
@@ -264,8 +280,11 @@ export default function Dashboard() {
 
         {/* Network Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Network Statistics</h3>
+          <div className="card cursor-pointer hover:shadow-md transition-shadow" onClick={handleOpenNetworkTree}>
+            <h3 className="text-lg font-semibold mb-4 flex items-center justify-between">
+              <span>Network Statistics</span>
+              <Users className="h-5 w-5 text-primary-600" />
+            </h3>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Network Balance (10 levels)</span>
@@ -280,6 +299,7 @@ export default function Dashboard() {
                 <span className="font-semibold text-primary-600">{dashboardData?.user?.level}</span>
               </div>
             </div>
+            <p className="text-xs text-blue-600 mt-3 font-medium">Click to view Network Tree</p>
           </div>
 
           <div className="card">
@@ -516,6 +536,11 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold mb-4">Withdraw USDT</h3>
             
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
+              <p className="text-sm font-semibold text-purple-900">Network Information</p>
+              <p className="text-sm text-purple-700 mt-1">TRC20 (Tron Network) only</p>
+            </div>
+
             {/* Withdrawal Time Info */}
             {withdrawalTimeStatus && (
               <div className={`mb-4 p-3 rounded-lg ${withdrawalTimeStatus.isEnabled ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
@@ -554,16 +579,17 @@ export default function Dashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Wallet Address
+                  Wallet Address (TRC20)
                 </label>
                 <input
                   type="text"
                   required
                   className="input"
-                  placeholder="Enter your USDT wallet address"
+                  placeholder="Enter your TRC20 wallet address"
                   value={withdrawForm.walletAddress}
                   onChange={(e) => setWithdrawForm({ ...withdrawForm, walletAddress: e.target.value })}
                 />
+                <p className="text-xs text-gray-500 mt-1">Only TRC20 (Tron Network) addresses accepted</p>
               </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setShowWithdrawModal(false)} className="btn btn-secondary flex-1">
@@ -652,6 +678,98 @@ export default function Dashboard() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Network Tree Modal */}
+      {showNetworkTreeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-6xl w-full p-6 my-8">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-2xl font-bold">My Network Tree</h3>
+              <button
+                onClick={() => {
+                  setShowNetworkTreeModal(false);
+                  setNetworkTree(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {networkTree ? (
+              <div className="overflow-auto max-h-[70vh]">
+                <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Root User (You)</p>
+                      <p className="font-bold text-lg">{networkTree.root?.username}</p>
+                      <p className="text-xs text-gray-500">ID: {networkTree.root?.id}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Balance</p>
+                      <p className="font-bold text-lg text-green-600">${networkTree.root?.balance?.toFixed(2)}</p>
+                      <p className="text-xs text-gray-500">
+                        Ranking: {networkTree.root?.ranking}
+                        {networkTree.root?.balance === 0 && 
+                          <span className="ml-2 text-red-600 font-semibold">INACTIVE</span>
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {networkTree.levels && networkTree.levels.length > 0 ? (
+                  <div className="space-y-4">
+                    {networkTree.levels.map((levelData: any) => (
+                      <div key={levelData.level} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                          <h4 className="font-bold text-lg text-gray-900">
+                            Level {levelData.level}
+                          </h4>
+                          <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            {levelData.count} {levelData.count === 1 ? 'Member' : 'Members'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                          {levelData.users.map((user: any) => (
+                            <div key={user.id} className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sm">{user.username}</p>
+                                  <p className="text-xs text-gray-500">ID: {user.id.substring(0, 8)}...</p>
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    Ranking: <span className={user.balance === 0 ? 'text-red-600 font-semibold' : 'font-medium'}>
+                                      {user.balance === 0 ? 'INACTIVE' : user.ranking}
+                                    </span>
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-bold ${user.balance === 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    ${user.balance?.toFixed(2)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No network members found
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="mt-3 text-gray-600">Loading network tree...</p>
+              </div>
+            )}
           </div>
         </div>
       )}

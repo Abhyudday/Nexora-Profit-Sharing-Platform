@@ -795,11 +795,16 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
       where: { type: 'WITHDRAWAL', status: 'PENDING' },
     });
 
+    const deposits = totalDeposits._sum.amount || 0;
+    const withdrawals = totalWithdrawals._sum.amount || 0;
+    const netDeposit = deposits - withdrawals;
+
     res.json({
       totalUsers,
       totalBalance: totalBalance._sum.balance || 0,
-      totalDeposits: totalDeposits._sum.amount || 0,
-      totalWithdrawals: totalWithdrawals._sum.amount || 0,
+      totalDeposits: deposits,
+      totalWithdrawals: withdrawals,
+      netDeposit,
       pendingDeposits,
       pendingWithdrawals,
     });
@@ -1242,36 +1247,8 @@ export const recalculateAllRanks = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Helper function to build network tree for admin view
+// Helper function to build network tree for admin view using BFS
 async function buildAdminNetworkTree(userId: string, maxLevel: number) {
-  const buildLevel = async (id: string, currentLevel: number): Promise<any> => {
-    if (currentLevel >= maxLevel) return [];
-
-    const referrals = await prisma.user.findMany({
-      where: { referrerId: id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        balance: true,
-        totalDeposit: true,
-        level: true,
-        createdAt: true,
-      },
-    });
-
-    if (referrals.length === 0) return [];
-
-    const children = await Promise.all(
-      referrals.map(async (ref) => ({
-        ...ref,
-        children: await buildLevel(ref.id, currentLevel + 1),
-      }))
-    );
-
-    return children;
-  };
-
   const rootUser = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -1289,8 +1266,60 @@ async function buildAdminNetworkTree(userId: string, maxLevel: number) {
     return null;
   }
 
+  const levels: any[] = [];
+  let currentLevelUserIds = [userId];
+
+  for (let levelNum = 1; levelNum <= maxLevel; levelNum++) {
+    if (currentLevelUserIds.length === 0) break;
+
+    const referrals = await prisma.user.findMany({
+      where: {
+        referrerId: { in: currentLevelUserIds },
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        balance: true,
+        totalDeposit: true,
+        level: true,
+        createdAt: true,
+        referrerId: true,
+      },
+    });
+
+    if (referrals.length > 0) {
+      levels.push({
+        level: levelNum,
+        count: referrals.length,
+        users: referrals.map(user => ({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          balance: user.balance,
+          ranking: user.level,
+          totalDeposit: user.totalDeposit,
+          createdAt: user.createdAt,
+          referrerId: user.referrerId,
+        })),
+      });
+
+      currentLevelUserIds = referrals.map(r => r.id);
+    } else {
+      break;
+    }
+  }
+
   return {
-    ...rootUser,
-    children: await buildLevel(userId, 0),
+    root: {
+      id: rootUser.id,
+      username: rootUser.username,
+      email: rootUser.email,
+      balance: rootUser.balance,
+      ranking: rootUser.level,
+      totalDeposit: rootUser.totalDeposit,
+      createdAt: rootUser.createdAt,
+    },
+    levels,
   };
 }
