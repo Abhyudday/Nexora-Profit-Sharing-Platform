@@ -8,6 +8,10 @@ export const getDashboard = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
 
+    // Calculate current time once for "before 2 AM = previous day" logic
+    const now = new Date();
+    const currentHour = now.getHours();
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -45,9 +49,14 @@ export const getDashboard = async (req: AuthRequest, res: Response) => {
       0
     );
 
-    // Get yesterday's profit
+    // Get yesterday's profit with "before 2 AM = previous day" logic
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    // If before 2 AM, shift back one more day for "yesterday"
+    if (currentHour < 2) {
+      yesterday.setDate(yesterday.getDate() - 2);
+    } else {
+      yesterday.setDate(yesterday.getDate() - 1);
+    }
     yesterday.setHours(0, 0, 0, 0);
 
     const yesterdayProfit = await prisma.profitHistory.findFirst({
@@ -79,18 +88,23 @@ export const getDashboard = async (req: AuthRequest, res: Response) => {
       _sum: { profitAmount: true },
     });
 
-    // Get today's bonus
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Get today's bonus using tradingDate
+    // If before 2 AM, consider it as previous day
+    const tradingDay = new Date();
+    if (currentHour < 2) {
+      tradingDay.setDate(tradingDay.getDate() - 1);
+    }
+    tradingDay.setHours(0, 0, 0, 0);
+    
+    const nextTradingDay = new Date(tradingDay);
+    nextTradingDay.setDate(nextTradingDay.getDate() + 1);
 
     const todayBonus = await prisma.bonusHistory.aggregate({
       where: {
         userId,
-        createdAt: {
-          gte: today,
-          lt: tomorrow,
+        tradingDate: {
+          gte: tradingDay,
+          lt: nextTradingDay,
         },
       },
       _sum: { bonusAmount: true },
@@ -256,19 +270,21 @@ export const getDailyBonusBreakdown = async (req: AuthRequest, res: Response) =>
     const userId = req.userId!;
     const { date } = req.query;
 
-    // Convert to GMT+7 timezone for proper date boundary
-    const now = new Date();
-    const gmt7Offset = 7 * 60;
-    const localOffset = now.getTimezoneOffset();
-    const totalOffset = gmt7Offset + localOffset;
-    const gmt7Now = new Date(now.getTime() + totalOffset * 60 * 1000);
-
-    // Get target date in GMT+7
+    // Get target date with "before 2 AM = previous day" logic
     let targetDate: Date;
     if (date) {
+      // If date is explicitly provided, use it as-is
       targetDate = new Date(date as string);
     } else {
-      targetDate = new Date(gmt7Now);
+      // No date provided - use current date with 2 AM rule
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      targetDate = new Date();
+      // If before 2 AM, use yesterday's date for trading date
+      if (currentHour < 2) {
+        targetDate.setDate(targetDate.getDate() - 1);
+      }
     }
     targetDate.setHours(0, 0, 0, 0);
 
