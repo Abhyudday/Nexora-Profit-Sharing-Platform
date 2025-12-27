@@ -425,48 +425,63 @@ export const distributeProfit = async (req: AuthRequest, res: Response) => {
 
     // Distribute profit to each user based on their rank
     for (const user of users) {
-      // Get profit share ratio based on user's rank
-      const { user: userSharePercent } = await import('../utils/rank.util').then(m => m.getProfitShareRatio(user.level));
-      const userShare = userSharePercent / 100; // Convert to decimal
-      
-      const userProfit = user.balance * profitPercent * userShare;
-      totalProfitDistributed += userProfit;
+      try {
+        // Get profit share ratio based on user's rank
+        const { user: userSharePercent } = await import('../utils/rank.util').then(m => m.getProfitShareRatio(user.level));
+        const userShare = userSharePercent / 100; // Convert to decimal
+        
+        const userProfit = user.balance * profitPercent * userShare;
+        totalProfitDistributed += userProfit;
 
-      // Calculate new balance and rank
-      const newBalance = user.balance + userProfit;
-      const newLevel = calculateRankFromBalance(newBalance, isTestnet);
+        // Use atomic increment to prevent race conditions
+        const updatedUser = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            balance: {
+              increment: userProfit,
+            },
+          },
+          select: {
+            balance: true,
+          },
+        });
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          balance: newBalance,
-          level: newLevel,
-        },
-      });
+        // Calculate and update new rank based on updated balance
+        const newLevel = calculateRankFromBalance(updatedUser.balance, isTestnet);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            level: newLevel,
+          },
+        });
 
-      await prisma.profitHistory.create({
-        data: {
-          userId: user.id,
-          profitPercent: tradingResult.profitPercent,
-          profitAmount: userProfit,
-          tradingDate: tradingResult.tradingDate,
-        },
-      });
+        await prisma.profitHistory.create({
+          data: {
+            userId: user.id,
+            profitPercent: tradingResult.profitPercent,
+            profitAmount: userProfit,
+            tradingDate: tradingResult.tradingDate,
+          },
+        });
 
-      // Also create a transaction record
-      await prisma.transaction.create({
-        data: {
-          userId: user.id,
-          amount: userProfit,
-          type: 'PROFIT',
-          status: 'COMPLETED',
-          remarks: `Profit distribution for ${tradingResult.tradingDate.toDateString()}`,
-        },
-      });
+        // Also create a transaction record
+        await prisma.transaction.create({
+          data: {
+            userId: user.id,
+            amount: userProfit,
+            type: 'PROFIT',
+            status: 'COMPLETED',
+            remarks: `Profit distribution for ${tradingResult.tradingDate.toDateString()}`,
+          },
+        });
 
-      // Auto-distribute network leveling bonus
-      const bonusDistributed = await distributeNetworkBonus(user.id, userProfit, tradingResult.tradingDate);
-      totalBonusDistributed += bonusDistributed;
+        // Auto-distribute network leveling bonus
+        const bonusDistributed = await distributeNetworkBonus(user.id, userProfit, tradingResult.tradingDate);
+        totalBonusDistributed += bonusDistributed;
+      } catch (error) {
+        console.error(`Error distributing profit to user ${user.id}:`, error);
+        // Continue with next user even if one fails
+      }
     }
 
     // Mark as processed
@@ -572,21 +587,31 @@ async function distributeNetworkBonus(userId: string, profitAmount: number, trad
         // Calculate bonus from the SOURCE user's company share portion
         const bonusAmount = companyPortion * bonusRate;
 
-        // Update upline's balance and recalculate rank
-        const newBalance = uplineBalance + bonusAmount;
-        
-        // Check if testnet mode for rank calculation
+        // Use atomic increment to prevent race conditions
+        const updatedUser = await prisma.user.update({
+          where: { id: uplineId },
+          data: {
+            balance: {
+              increment: bonusAmount,
+            },
+          },
+          select: {
+            balance: true,
+          },
+        });
+
+        // Recalculate rank based on new balance
         const network = process.env.DEPOSIT_NETWORK || 'Sepolia Testnet';
         const isTestnet = network.toLowerCase().includes('test') || 
                           network.toLowerCase().includes('sepolia') || 
                           network.toLowerCase().includes('goerli');
         
-        const newRank = calculateRankFromBalance(newBalance, isTestnet);
+        const newRank = calculateRankFromBalance(updatedUser.balance, isTestnet);
         
+        // Update rank if changed
         await prisma.user.update({
           where: { id: uplineId },
           data: {
-            balance: newBalance,
             level: newRank,
           },
         });
