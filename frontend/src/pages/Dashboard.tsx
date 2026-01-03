@@ -163,9 +163,16 @@ export default function Dashboard() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-sm text-gray-600">Welcome back, {user?.username}</p>
+            <div className="flex items-center gap-4">
+              <img 
+                src="/assets/orbitx-logo.svg" 
+                alt="OrbitX Logo" 
+                className="h-12"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-sm text-gray-600">Welcome back, {user?.username}</p>
+              </div>
             </div>
             <div className="flex gap-2">
               {user?.isAdmin && (
