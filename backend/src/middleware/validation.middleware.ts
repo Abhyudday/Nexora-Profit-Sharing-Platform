@@ -1,7 +1,7 @@
 import { body, param, query, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
 
-// Validation error handler
+// Middleware to handle validation errors with detailed messages
 export const handleValidationErrors = (
   req: Request,
   res: Response,
@@ -9,12 +9,26 @@ export const handleValidationErrors = (
 ) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      error: 'Validation failed',
-      details: errors.array().map(err => ({
-        field: err.type === 'field' ? (err as any).path : 'unknown',
-        message: err.msg,
-      })),
+    const errorMessages = errors.array().map(err => ({
+      field: err.type === 'field' ? err.path : 'unknown',
+      message: err.msg,
+      value: err.type === 'field' ? err.value : undefined
+    }));
+
+    // Log validation errors for debugging
+    console.error('❌ Validation failed:', {
+      path: req.path,
+      method: req.method,
+      errors: errorMessages,
+      body: { ...req.body, password: req.body.password ? '[HIDDEN]' : undefined }
+    });
+
+    // Return user-friendly error with specific field issues
+    const firstError = errorMessages[0];
+    return res.status(400).json({ 
+      error: firstError.message,
+      field: firstError.field,
+      validationErrors: errorMessages
     });
   }
   next();

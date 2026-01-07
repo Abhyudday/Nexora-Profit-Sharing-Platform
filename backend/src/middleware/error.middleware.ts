@@ -8,20 +8,28 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  const status = err.status || 500;
+  
   // Log error details (sanitized for production)
   if (isProduction) {
     console.error(JSON.stringify({
       timestamp: new Date().toISOString(),
       error: err.message,
+      code: err.code,
       path: req.path,
       method: req.method,
+      statusCode: status,
       // Don't log stack traces or sensitive data in production
     }));
   } else {
-    console.error('Error:', err);
+    console.error('❌ Error occurred:', {
+      message: err.message,
+      code: err.code,
+      path: req.path,
+      method: req.method,
+      stack: err.stack
+    });
   }
-
-  const status = err.status || 500;
   
   // Don't expose internal error messages in production
   let message = 'Internal server error';

@@ -226,11 +226,15 @@ export const login = async (req: Request, res: Response) => {
         isAdmin: user.isAdmin,
       },
     });
-  } catch (error) {
-    // Log failed login attempt
+  } catch (error: any) {
+    // Log failed login attempt with details
     logSecurityEvent('LOGIN_FAILED', req, { email: req.body.email, error: 'Internal error' });
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    console.error('❌ Login error:', {
+      message: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+    res.status(500).json({ error: 'Login failed. Please try again.' });
   }
 };
 
