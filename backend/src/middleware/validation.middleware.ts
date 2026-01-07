@@ -63,7 +63,7 @@ export const validateRegister = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   body('referralCode')
-    .optional()
+    .optional({ values: 'falsy' })
     .trim()
     .isLength({ min: 8, max: 8 })
     .withMessage('Referral code must be exactly 8 characters')
