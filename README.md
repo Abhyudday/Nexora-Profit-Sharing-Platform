@@ -1,4 +1,4 @@
-# Crypto MLM Platform
+# OrbitX - Trade as one
 
 A full-stack crypto investment platform with multi-level marketing features, USDT deposits/withdrawals, and automated profit distribution.
 

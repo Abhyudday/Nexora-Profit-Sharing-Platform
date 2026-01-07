@@ -9,7 +9,7 @@ if [ ! -d ".git" ]; then
     echo "📦 Initializing git repository..."
     git init
     git add .
-    git commit -m "Initial commit - Crypto MLM Platform"
+    git commit -m "Initial commit - OrbitX"
     echo "✅ Git repository initialized"
 else
     echo "✅ Git repository already exists"

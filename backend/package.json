@@ -1,7 +1,7 @@
 {
   "name": "crypto-mlm-backend",
   "version": "1.0.0",
-  "description": "Backend API for Crypto MLM Platform",
+  "description": "Backend API for OrbitX - Trade as one",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
