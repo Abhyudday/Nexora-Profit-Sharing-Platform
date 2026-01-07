@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { PrismaClient, UserLevel } from '@prisma/client';
+import { UserLevel } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
 import {
   sendDepositApprovedEmail,
@@ -7,8 +7,7 @@ import {
 } from '../utils/email.util';
 import { getLevelBonusLevels, getLevelRequirement } from '../utils/helpers';
 import { updateUserRank, calculateRankFromBalance } from '../utils/rank.util';
-
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma';
 
 export const getPendingDeposits = async (req: AuthRequest, res: Response) => {
   try {

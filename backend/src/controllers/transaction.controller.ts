@@ -1,9 +1,7 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { checkWithdrawalTimeWindow } from '../utils/withdrawal.util';
-
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma';
 
 export const createDeposit = async (req: AuthRequest, res: Response) => {
   try {
@@ -69,13 +67,15 @@ export const createWithdrawal = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (!amount || amount <= 0) {
+    const withdrawalAmount = parseFloat(amount);
+
+    if (!amount || withdrawalAmount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
     // Check minimum withdrawal amount ($10)
     const minWithdrawal = 10;
-    if (parseFloat(amount) < minWithdrawal) {
+    if (withdrawalAmount < minWithdrawal) {
       return res.status(400).json({ 
         error: `Minimum withdrawal amount is $${minWithdrawal}` 
       });
@@ -85,35 +85,69 @@ export const createWithdrawal = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
 
-    // Check user balance
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    // Use transaction to prevent race conditions
+    // Check balance and create withdrawal atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // Get user with lock (SELECT FOR UPDATE in PostgreSQL)
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+      });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+      if (!user) {
+        throw new Error('USER_NOT_FOUND');
+      }
 
-    if (user.balance < amount) {
-      return res.status(400).json({ error: 'Insufficient balance' });
-    }
+      if (user.balance < withdrawalAmount) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
 
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId,
-        amount: parseFloat(amount),
-        type: 'WITHDRAWAL',
-        status: 'PENDING',
-        walletAddress,
-      },
+      // Check for any pending withdrawals (prevent multiple pending withdrawals)
+      const pendingWithdrawals = await tx.transaction.count({
+        where: {
+          userId,
+          type: 'WITHDRAWAL',
+          status: 'PENDING',
+        },
+      });
+
+      if (pendingWithdrawals >= 3) {
+        throw new Error('TOO_MANY_PENDING');
+      }
+
+      // Create the withdrawal transaction
+      const transaction = await tx.transaction.create({
+        data: {
+          userId,
+          amount: withdrawalAmount,
+          type: 'WITHDRAWAL',
+          status: 'PENDING',
+          walletAddress,
+        },
+      });
+
+      return transaction;
     });
 
     res.status(201).json({
       message: 'Withdrawal request submitted. Awaiting admin approval.',
-      transaction,
+      transaction: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create withdrawal error:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'USER_NOT_FOUND') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (error.message === 'INSUFFICIENT_BALANCE') {
+      return res.status(400).json({ error: 'Insufficient balance' });
+    }
+    if (error.message === 'TOO_MANY_PENDING') {
+      return res.status(400).json({ 
+        error: 'You have too many pending withdrawal requests. Please wait for existing requests to be processed.' 
+      });
+    }
+    
     res.status(500).json({ error: 'Failed to create withdrawal request' });
   }
 };

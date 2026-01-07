@@ -1,11 +1,25 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email.util';
 import { generateReferralCode, generateVerificationToken } from '../utils/helpers';
+import prisma from '../utils/prisma';
+import { logSecurityEvent } from '../middleware/security.middleware';
 
-const prisma = new PrismaClient();
+// Validate JWT_SECRET exists and is secure
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not set');
+  }
+  if (secret.length < 32) {
+    throw new Error('FATAL: JWT_SECRET must be at least 32 characters long');
+  }
+  if (secret.includes('default') || secret.includes('change')) {
+    console.error('⚠️ WARNING: JWT_SECRET appears to be a default value. Please change it for production!');
+  }
+  return secret;
+};
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -191,12 +205,15 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Skip email verification check
-    const jwtSecret = process.env.JWT_SECRET || 'default-secret';
+    const jwtSecret = getJwtSecret();
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       jwtSecret,
       { expiresIn: '7d' }
     );
+
+    // Log successful login
+    logSecurityEvent('LOGIN_SUCCESS', req, { userId: user.id, email: user.email });
 
     console.log('✅ Login successful - generating token');
     res.json({
@@ -210,6 +227,8 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    // Log failed login attempt
+    logSecurityEvent('LOGIN_FAILED', req, { email: req.body.email, error: 'Internal error' });
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
   }

@@ -1,6 +1,5 @@
-import { UserLevel, PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { UserLevel } from '@prisma/client';
+import prisma from './prisma';
 
 export interface RankConfig {
   level: UserLevel;

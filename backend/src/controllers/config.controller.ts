@@ -1,8 +1,6 @@
 import { Response, Request } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
-
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma';
 
 // Public endpoint to get deposit wallet
 export const getDepositWallet = async (req: Request, res: Response) => {
