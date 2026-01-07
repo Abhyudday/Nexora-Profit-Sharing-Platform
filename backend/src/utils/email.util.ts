@@ -8,13 +8,19 @@ const resend = process.env.RESEND_API_KEY
 // Email sender address (must be verified in Resend or use onboarding@resend.dev for testing)
 const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
+// Get the primary frontend URL (first one if comma-separated)
+const getFrontendUrl = (): string => {
+  const urls = process.env.FRONTEND_URL || 'http://localhost:3000';
+  return urls.split(',')[0].trim();
+};
+
 export const sendVerificationEmail = async (email: string, token: string) => {
   if (!resend) {
     console.warn('⚠️  Resend not configured (RESEND_API_KEY missing) - skipping verification email to', email);
     return;
   }
 
-  const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+  const verificationUrl = `${getFrontendUrl()}/verify-email?token=${token}`;
 
   try {
     const { data, error } = await resend.emails.send({
@@ -126,7 +132,7 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
     return;
   }
 
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const resetUrl = `${getFrontendUrl()}/reset-password?token=${token}`;
 
   try {
     const { data, error } = await resend.emails.send({
