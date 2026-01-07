@@ -1,9 +1,14 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Production API URL - hardcoded for Railway deployment
+const PRODUCTION_API_URL = 'https://mlm-backend-production-c029.up.railway.app/api';
 
-// Debug: Log the API URL being used (remove in production if needed)
+const API_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? PRODUCTION_API_URL : 'http://localhost:5000/api');
+
+// Debug: Log the API URL being used
 console.log('🔗 API URL:', API_URL);
+console.log('📊 Mode:', import.meta.env.MODE);
 
 export const api = axios.create({
   baseURL: API_URL,
