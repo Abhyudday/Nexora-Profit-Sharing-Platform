@@ -9,39 +9,51 @@ const prisma = new PrismaClient();
 
 export const register = async (req: Request, res: Response) => {
   try {
+    console.log('🔄 Registration attempt started');
+    console.log('📝 Request body:', { ...req.body, password: '[HIDDEN]' });
+    
     const { username, email, phone, password, referralCode } = req.body;
 
     // Validate required fields
     if (!username || !email || !phone || !password) {
+      console.log('❌ Missing required fields');
       return res.status(400).json({ error: 'All fields are required' });
     }
 
+    console.log('🔍 Checking if user exists...');
     // Check if user already exists
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ email }, { username }],
       },
     });
+    console.log('👤 Existing user check result:', existingUser ? 'User exists' : 'User does not exist');
 
     if (existingUser) {
+      console.log('❌ User already exists');
       return res.status(400).json({ error: 'User already exists' });
     }
 
     // Find referrer if referral code provided
     let referrerId = null;
     if (referralCode) {
+      console.log('🔍 Checking referral code:', referralCode);
       const referrer = await prisma.user.findUnique({
         where: { referralCode },
       });
       if (!referrer) {
+        console.log('❌ Invalid referral code');
         return res.status(400).json({ error: 'Invalid referral code' });
       }
       referrerId = referrer.id;
+      console.log('✅ Valid referrer found:', referrer.username);
     }
 
+    console.log('🔒 Hashing password...');
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    console.log('🎲 Generating unique referral code...');
     // Generate unique referral code
     let newReferralCode = generateReferralCode();
     let codeExists = await prisma.user.findUnique({
@@ -53,7 +65,9 @@ export const register = async (req: Request, res: Response) => {
         where: { referralCode: newReferralCode },
       });
     }
+    console.log('✅ Generated referral code:', newReferralCode);
 
+    console.log('💾 Creating user in database...');
     // Create user (skip email verification)
     const user = await prisma.user.create({
       data: {
@@ -67,7 +81,9 @@ export const register = async (req: Request, res: Response) => {
         verificationToken: null,
       },
     });
+    console.log('✅ User created successfully with ID:', user.id);
 
+    console.log('🎉 Registration completed successfully');
     res.status(201).json({
       message: 'Registration successful! You can now login.',
       userId: user.id,
@@ -135,12 +151,17 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
+    console.log('🔐 Login attempt started');
+    console.log('📧 Email:', req.body.email);
+    
     const { email, password } = req.body;
 
     if (!email || !password) {
+      console.log('❌ Missing email or password');
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    console.log('🔍 Looking up user in database...');
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -153,14 +174,19 @@ export const login = async (req: Request, res: Response) => {
         emailVerified: true,
       },
     });
+    console.log('👤 User lookup result:', user ? `Found user: ${user.username}` : 'User not found');
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      console.log('❌ User not found - please sign up first');
+      return res.status(401).json({ error: 'Invalid credentials. Please sign up first.' });
     }
 
+    console.log('🔑 Verifying password...');
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('🔐 Password check result:', isPasswordValid ? 'Valid' : 'Invalid');
 
     if (!isPasswordValid) {
+      console.log('❌ Invalid password');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -172,6 +198,7 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
+    console.log('✅ Login successful - generating token');
     res.json({
       token,
       user: {
