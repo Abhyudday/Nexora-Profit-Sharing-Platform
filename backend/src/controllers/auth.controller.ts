@@ -81,12 +81,8 @@ export const register = async (req: Request, res: Response) => {
     }
     console.log('✅ Generated referral code:', newReferralCode);
 
-    // Generate verification token
-    const verificationToken = generateVerificationToken();
-    console.log('🔐 Generated verification token');
-
     console.log('💾 Creating user in database...');
-    // Create user with email verification enabled
+    // Create user (skip email verification)
     const user = await prisma.user.create({
       data: {
         username,
@@ -95,27 +91,16 @@ export const register = async (req: Request, res: Response) => {
         password: hashedPassword,
         referralCode: newReferralCode,
         referrerId,
-        emailVerified: false, // Require email verification
-        verificationToken,
+        emailVerified: true, // Auto-verify for now
+        verificationToken: null,
       },
     });
     console.log('✅ User created successfully with ID:', user.id);
 
-    // Send verification email
-    try {
-      console.log('📧 Sending verification email to:', email);
-      await sendVerificationEmail(email, verificationToken);
-      console.log('✅ Verification email sent successfully');
-    } catch (emailError: any) {
-      console.error('❌ Failed to send verification email:', emailError.message);
-      // Don't fail registration if email fails, but log it
-    }
-
     console.log('🎉 Registration completed successfully');
     res.status(201).json({
-      message: 'Registration successful! Please check your email to verify your account.',
+      message: 'Registration successful! You can now login.',
       userId: user.id,
-      emailSent: true,
     });
   } catch (error: any) {
     console.error('Registration error:', error);
