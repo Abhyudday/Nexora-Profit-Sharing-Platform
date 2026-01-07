@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, verifyEmail, login, forgotPassword, resetPassword } from '../controllers/auth.controller';
+import { register, verifyEmail, login, forgotPassword, resetPassword, resendVerificationEmail } from '../controllers/auth.controller';
 import { 
   loginLimiter, 
   registerLimiter, 
@@ -21,6 +21,9 @@ router.post('/register', registerLimiter, validateRegister, register);
 
 // Email verification
 router.post('/verify-email', authLimiter, validateVerifyEmail, verifyEmail);
+
+// Resend verification email
+router.post('/resend-verification', authLimiter, validateForgotPassword, resendVerificationEmail);
 
 // Login with strict rate limiting and validation
 router.post('/login', loginLimiter, validateLogin, login);

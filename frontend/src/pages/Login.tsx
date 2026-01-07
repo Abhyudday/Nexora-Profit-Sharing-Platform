@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, Mail, AlertCircle, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
 import { setCredentials } from '../store/authSlice';
@@ -10,14 +10,30 @@ export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
 
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      await api.post('/auth/resend-verification', { email: unverifiedEmail });
+      toast.success('Verification email sent! Please check your inbox.');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to resend verification email');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setEmailNotVerified(false);
 
     try {
       const { data } = await api.post('/auth/login', formData);
@@ -25,7 +41,13 @@ export default function Login() {
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Login failed');
+      const errorData = error.response?.data;
+      if (errorData?.emailNotVerified) {
+        setEmailNotVerified(true);
+        setUnverifiedEmail(errorData.email);
+      } else {
+        toast.error(errorData?.error || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -43,6 +65,29 @@ export default function Login() {
           <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
+
+        {emailNotVerified && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-amber-800 font-medium">Email not verified</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  Please check your inbox for the verification link before logging in.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800"
+                >
+                  <RefreshCw className={`h-4 w-4 ${resending ? 'animate-spin' : ''}`} />
+                  {resending ? 'Sending...' : 'Resend verification email'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

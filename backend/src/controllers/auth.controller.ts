@@ -82,7 +82,10 @@ export const register = async (req: Request, res: Response) => {
     console.log('✅ Generated referral code:', newReferralCode);
 
     console.log('💾 Creating user in database...');
-    // Create user (skip email verification)
+    // Generate verification token
+    const verificationToken = generateVerificationToken();
+    
+    // Create user with email unverified
     const user = await prisma.user.create({
       data: {
         username,
@@ -91,16 +94,27 @@ export const register = async (req: Request, res: Response) => {
         password: hashedPassword,
         referralCode: newReferralCode,
         referrerId,
-        emailVerified: true, // Auto-verify for now
-        verificationToken: null,
+        emailVerified: false,
+        verificationToken,
       },
     });
     console.log('✅ User created successfully with ID:', user.id);
 
+    // Send verification email immediately
+    console.log('📧 Sending verification email...');
+    try {
+      await sendVerificationEmail(email, verificationToken);
+      console.log('✅ Verification email sent successfully');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send verification email:', emailError);
+      // Don't fail registration if email fails - user can request resend
+    }
+
     console.log('🎉 Registration completed successfully');
     res.status(201).json({
-      message: 'Registration successful! You can now login.',
+      message: 'Registration successful! Please check your email to verify your account before logging in.',
       userId: user.id,
+      emailSent: true,
     });
   } catch (error: any) {
     console.error('Registration error:', error);
@@ -204,7 +218,16 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Skip email verification check
+    // Check email verification
+    if (!user.emailVerified) {
+      console.log('❌ Email not verified');
+      return res.status(403).json({ 
+        error: 'Please verify your email before logging in. Check your inbox for the verification link.',
+        emailNotVerified: true,
+        email: user.email
+      });
+    }
+
     const jwtSecret = getJwtSecret();
     const token = jwt.sign(
       { userId: user.id, email: user.email },
@@ -289,6 +312,50 @@ export const forgotPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Failed to process request' });
+  }
+};
+
+export const resendVerificationEmail = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        emailVerified: true,
+      },
+    });
+
+    if (!user) {
+      // Don't reveal if user exists
+      return res.json({ message: 'If the email exists and is not verified, a new verification link has been sent.' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ error: 'Email is already verified. You can login now.' });
+    }
+
+    // Generate new verification token
+    const verificationToken = generateVerificationToken();
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verificationToken },
+    });
+
+    // Send verification email
+    await sendVerificationEmail(user.email, verificationToken);
+
+    res.json({ message: 'Verification email sent! Please check your inbox.' });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ error: 'Failed to resend verification email' });
   }
 };
 
