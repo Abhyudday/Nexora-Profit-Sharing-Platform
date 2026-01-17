@@ -1,7 +1,7 @@
 {
   "name": "crypto-mlm-backend",
   "version": "1.0.0",
-  "description": "Backend API for OrbitX - Trade as one",
+  "description": "Backend API for Nexora - Trade as one",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

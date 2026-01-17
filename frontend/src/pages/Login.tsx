@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, Mail, AlertCircle, RefreshCw } from 'lucide-react';
+import { Lock, Mail, AlertCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
 import { setCredentials } from '../store/authSlice';
@@ -38,7 +38,7 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', formData);
       dispatch(setCredentials({ user: data.user, token: data.token }));
-      toast.success('Login successful!');
+      toast.success('Welcome back to Nexora!');
       navigate('/dashboard');
     } catch (error: any) {
       const errorData = error.response?.data;
@@ -54,101 +54,119 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <img 
-            src="/logo.png" 
-            alt="OrbitX Logo" 
-            className="h-32 mx-auto mb-4"
-          />
-          <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
-        </div>
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-slate-900">
+      {/* Background Mesh Gradient */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[#0f172a]" />
+        <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-brand-600/20 blur-[100px]" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-accent-500/10 blur-[100px]" />
+      </div>
 
-        {emailNotVerified && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm text-amber-800 font-medium">Email not verified</p>
-                <p className="text-sm text-amber-700 mt-1">
-                  Please check your inbox for the verification link before logging in.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleResendVerification}
-                  disabled={resending}
-                  className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800"
-                >
-                  <RefreshCw className={`h-4 w-4 ${resending ? 'animate-spin' : ''}`} />
-                  {resending ? 'Sending...' : 'Resend verification email'}
-                </button>
+      <div className="relative z-10 w-full max-w-md">
+        <div className="glass-card border-slate-700/50 bg-slate-800/50 backdrop-blur-2xl p-8 rounded-2xl shadow-2xl ring-1 ring-white/10">
+          <div className="text-center mb-8">
+            <div className="inline-flex justify-center mb-6 p-4 bg-slate-900/50 rounded-full ring-1 ring-white/10 shadow-lg">
+              <img 
+                src="/assets/nexora-logo.svg" 
+                alt="Nexora Logo" 
+                className="h-16 w-auto"
+              />
+            </div>
+            <h1 className="text-3xl font-display font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-slate-400">Sign in to continue your trading journey</p>
+          </div>
+
+          {emailNotVerified && (
+            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-amber-200 font-medium">Email not verified</p>
+                  <p className="text-xs text-amber-200/80 mt-1">
+                    Please check your inbox for the verification link.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${resending ? 'animate-spin' : ''}`} />
+                    {resending ? 'Sending...' : 'Resend verification email'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="email"
-                required
-                className="input pl-10"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Password
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">
+                Email Address
               </label>
-              <Link 
-                to="/forgot-password" 
-                className="text-sm text-primary-600 hover:text-primary-700"
-              >
-                Forgot password?
+              <div className="relative group">
+                <Mail className="absolute left-4 top-3.5 h-5 w-5 text-slate-500 group-focus-within:text-brand-400 transition-colors" />
+                <input
+                  type="email"
+                  required
+                  className="input pl-12 bg-slate-900/50 border-slate-700 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-brand-500/20"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-sm font-medium text-slate-300">
+                  Password
+                </label>
+                <Link 
+                  to="/forgot-password" 
+                  className="text-xs font-medium text-brand-400 hover:text-brand-300 transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-3.5 h-5 w-5 text-slate-500 group-focus-within:text-brand-400 transition-colors" />
+                <input
+                  type="password"
+                  required
+                  className="input pl-12 bg-slate-900/50 border-slate-700 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-brand-500/20"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary w-full py-3 text-lg shadow-glow hover:shadow-glow-accent transition-all duration-300"
+            >
+              {loading ? (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="h-5 w-5 ml-1" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-slate-400 text-sm">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-brand-400 hover:text-brand-300 font-semibold transition-colors">
+                Create Account
               </Link>
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="password"
-                required
-                className="input pl-10"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-              />
-            </div>
+            </p>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary w-full"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-            Sign up
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

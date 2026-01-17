@@ -10,18 +10,16 @@ async function seedLevelBonuses() {
   try {
     console.log('Seeding level bonus percentages...');
 
-    // Default level bonus percentages (dynamic and configurable)
+    // Nexora level bonus percentages (7 levels, total 20%)
+    // Based on profit sharing: 60% investor, 20% Marketing Plan, 20% developer
     const levelBonuses = [
-      { level: 1, percentage: 20 },
-      { level: 2, percentage: 4 },
-      { level: 3, percentage: 4 },
-      { level: 4, percentage: 4 },
-      { level: 5, percentage: 4 },
-      { level: 6, percentage: 4 },
+      { level: 1, percentage: 5 },
+      { level: 2, percentage: 2 },
+      { level: 3, percentage: 2 },
+      { level: 4, percentage: 2 },
+      { level: 5, percentage: 2 },
+      { level: 6, percentage: 3 },
       { level: 7, percentage: 4 },
-      { level: 8, percentage: 4 },
-      { level: 9, percentage: 4 },
-      { level: 10, percentage: 4 },
     ];
 
     await prisma.systemConfig.upsert({
@@ -65,14 +63,14 @@ async function seedLevelBonuses() {
       VIP: {
         minBalance: 5000,
         maxBalance: 9999,
-        bonusLevels: 10,
+        bonusLevels: 7,
         profitShareUser: 80,
         profitShareCompany: 20,
       },
       VVIP: {
         minBalance: 10000,
         maxBalance: null,
-        bonusLevels: 10,
+        bonusLevels: 7,
         profitShareUser: 80,
         profitShareCompany: 20,
       },

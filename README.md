@@ -1,4 +1,4 @@
-# OrbitX - Trade as one
+# Nexora - Trade as one
 
 A full-stack crypto investment platform with multi-level marketing features, USDT deposits/withdrawals, and automated profit distribution.
 
@@ -7,7 +7,7 @@ A full-stack crypto investment platform with multi-level marketing features, USD
 ### Core Features
 - User registration (email verification disabled for easy testing)
 - USDT deposits and withdrawals (crypto only)
-- Multi-level network tree (up to 10 levels)
+- Multi-level network tree (up to 7 levels)
 - Automated profit/loss calculation and distribution
 - Network bonus system
 - Admin panel for approvals and trading results
@@ -26,8 +26,8 @@ A full-stack crypto investment platform with multi-level marketing features, USD
 - **Starter** ($100-$499): 0 level bonus, 50/50 profit split
 - **Beginner** ($500-$999): 3 level bonus, 60/40 profit split
 - **Investor** ($1,000-$4,999): 7 level bonus, 70/30 profit split
-- **VIP** ($5,000-$9,999): 10 level bonus, 80/20 profit split
-- **VVIP** ($10,000+): 10 level bonus, 80/20 profit split + monthly rewards
+- **VIP** ($5,000-$9,999): 7 level bonus, 80/20 profit split
+- **VVIP** ($10,000+): 7 level bonus, 80/20 profit split + monthly rewards
 
 ## Tech Stack
 

@@ -12,8 +12,8 @@
   <rect x="490" y="180" width="60" height="140" rx="10" fill="#357ABD" opacity="0.95"/>
   <rect x="560" y="140" width="60" height="180" rx="10" fill="#2E5F8F"/>
   
-  <!-- ORBITX Text -->
-  <text x="512" y="480" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#4A90E2" text-anchor="middle">ORBITX</text>
+  <!-- NEXORA Text -->
+  <text x="512" y="480" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#4A90E2" text-anchor="middle">NEXORA</text>
   
   <!-- Trade As One Text -->
   <text x="512" y="580" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="#E63946" text-anchor="middle">Trade As One</text>
