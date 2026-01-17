@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, DollarSign, TrendingUp, ArrowLeft, 
-  Check, X, Calendar, Wallet, Settings, Network, Eye, Copy,
-  Menu, Search, Filter, AlertTriangle, Shield, Download,
-  LayoutDashboard, FileText, ChevronRight, MoreHorizontal, UserCheck
+  X, Calendar, Settings,
+  Menu, Search, Filter, Shield, Download,
+  LayoutDashboard, FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
@@ -28,16 +28,9 @@ export default function AdminDashboard() {
   const [showTradingModal, setShowTradingModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [selectedDeposit, setSelectedDeposit] = useState<any>(null);
-  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
-  const [selectedMember, setSelectedMember] = useState<any>(null);
-  const [memberDetails, setMemberDetails] = useState<any>(null);
-  const [showBalanceAdjustModal, setShowBalanceAdjustModal] = useState(false);
-  const [showNetworkTreeModal, setShowNetworkTreeModal] = useState(false);
-  const [networkTree, setNetworkTree] = useState<any>(null);
 
   // Forms
   const [depositWallet, setDepositWallet] = useState('');
-  const [balanceAdjustForm, setBalanceAdjustForm] = useState({ amount: '', type: 'ADD', reason: '' });
   const [tradingForm, setTradingForm] = useState({
     profitPercent: '',
     tradingDate: new Date().toISOString().split('T')[0],
@@ -100,7 +93,6 @@ export default function AdminDashboard() {
       await api.post(`/admin/withdrawals/${id}/approve`, { txHash: '' });
       toast.success('Withdrawal approved!');
       fetchData();
-      setSelectedWithdrawal(null);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to approve withdrawal');
     }
@@ -114,7 +106,6 @@ export default function AdminDashboard() {
       toast.success('Transaction rejected!');
       fetchData();
       setSelectedDeposit(null);
-      setSelectedWithdrawal(null);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to reject transaction');
     }
@@ -137,38 +128,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchMemberDetails = async (userId: string) => {
-    try {
-      const { data } = await api.get(`/admin/member/${userId}/details`);
-      setMemberDetails(data);
-    } catch (error: any) {
-      toast.error('Failed to fetch member details');
-    }
-  };
-  
-  const fetchNetworkTree = async (userId: string) => {
-    try {
-      const { data } = await api.get(`/admin/member/${userId}/network-tree`);
-      setNetworkTree(data);
-    } catch (error: any) {
-      toast.error('Failed to fetch network tree');
-    }
-  };
-
-  const handleAdjustBalance = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMember) return;
-    try {
-      await api.post(`/admin/user/${selectedMember.id}/adjust-balance`, balanceAdjustForm);
-      toast.success('Balance adjusted!');
-      setShowBalanceAdjustModal(false);
-      setBalanceAdjustForm({ amount: '', type: 'ADD', reason: '' });
-      fetchMemberDetails(selectedMember.id);
-      fetchAllUsers();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to adjust balance');
-    }
-  };
 
   const fetchDepositWallet = async () => {
     try {
@@ -316,7 +275,7 @@ export default function AdminDashboard() {
                     {pendingWithdrawals.length > 0 ? (
                        <div className="space-y-3">
                          {pendingWithdrawals.slice(0, 5).map(tx => (
-                           <div key={tx.id} onClick={() => setSelectedWithdrawal(tx)} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors border border-slate-100">
+                           <div key={tx.id} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors border border-slate-100">
                               <div>
                                  <p className="font-semibold text-slate-900">{tx.user.username}</p>
                                  <p className="text-xs text-slate-500">{new Date(tx.createdAt).toLocaleDateString()}</p>
@@ -392,7 +351,7 @@ export default function AdminDashboard() {
                           <td className="px-6 py-4 text-center">
                             {tx.status === 'PENDING' && (
                               <button 
-                                onClick={() => tx.type === 'DEPOSIT' ? setSelectedDeposit(tx) : setSelectedWithdrawal(tx)}
+                                onClick={() => setSelectedDeposit(tx)}
                                 className="text-brand-600 hover:text-brand-800 font-medium text-xs hover:underline"
                               >
                                 Review
@@ -459,14 +418,14 @@ export default function AdminDashboard() {
 
                          <div className="flex gap-2">
                             <button 
-                              onClick={() => { setSelectedMember(user); fetchMemberDetails(user.id); }}
                               className="btn btn-secondary flex-1 py-1.5 text-xs"
+                              disabled
                             >
                               Details
                             </button>
                             <button 
-                              onClick={() => { setSelectedMember(user); setShowNetworkTreeModal(true); fetchNetworkTree(user.id); }}
                               className="btn bg-brand-50 text-brand-700 hover:bg-brand-100 border-transparent flex-1 py-1.5 text-xs"
+                              disabled
                             >
                               Network
                             </button>
