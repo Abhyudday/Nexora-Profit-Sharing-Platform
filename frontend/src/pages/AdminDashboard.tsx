@@ -88,16 +88,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleApproveWithdrawal = async (id: string) => {
-    try {
-      await api.post(`/admin/withdrawals/${id}/approve`, { txHash: '' });
-      toast.success('Withdrawal approved!');
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to approve withdrawal');
-    }
-  };
-
   const handleReject = async (id: string) => {
     const reason = prompt('Enter rejection reason:');
     if (!reason) return;
