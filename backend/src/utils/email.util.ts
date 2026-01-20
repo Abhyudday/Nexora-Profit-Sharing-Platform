@@ -16,8 +16,9 @@ const getFrontendUrl = (): string => {
 
 export const sendVerificationEmail = async (email: string, token: string) => {
   if (!resend) {
-    console.warn('⚠️  Resend not configured (RESEND_API_KEY missing) - skipping verification email to', email);
-    return;
+    const errorMsg = '⚠️  Resend not configured (RESEND_API_KEY missing)';
+    console.error(errorMsg);
+    throw new Error('Email service not configured. Please contact support.');
   }
 
   const verificationUrl = `${getFrontendUrl()}/verify-email?token=${token}`;

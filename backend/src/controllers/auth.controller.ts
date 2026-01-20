@@ -102,9 +102,11 @@ export const register = async (req: Request, res: Response) => {
 
     // Send verification email immediately
     console.log('📧 Sending verification email...');
+    let emailSent = false;
     try {
       await sendVerificationEmail(email, verificationToken);
       console.log('✅ Verification email sent successfully');
+      emailSent = true;
     } catch (emailError) {
       console.error('⚠️ Failed to send verification email:', emailError);
       // Don't fail registration if email fails - user can request resend
@@ -112,9 +114,11 @@ export const register = async (req: Request, res: Response) => {
 
     console.log('🎉 Registration completed successfully');
     res.status(201).json({
-      message: 'Registration successful! Please check your email to verify your account before logging in.',
+      message: emailSent 
+        ? 'Registration successful! Please check your email to verify your account before logging in.'
+        : 'Registration successful! However, we could not send the verification email. Please use the "Resend Verification Email" option.',
       userId: user.id,
-      emailSent: true,
+      emailSent,
     });
   } catch (error: any) {
     console.error('Registration error:', error);

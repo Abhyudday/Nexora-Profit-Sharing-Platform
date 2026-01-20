@@ -21,8 +21,15 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await api.post('/auth/register', formData);
-      toast.success('Registration successful! Please check your email.');
+      const response = await api.post('/auth/register', formData);
+      const { message, emailSent } = response.data;
+      
+      if (emailSent) {
+        toast.success(message || 'Registration successful! Please check your email.');
+      } else {
+        toast.error(message || 'Registration successful but email could not be sent. Please contact support.');
+      }
+      
       navigate('/login');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Registration failed');
