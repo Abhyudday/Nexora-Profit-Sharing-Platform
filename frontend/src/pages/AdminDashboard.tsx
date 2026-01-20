@@ -145,7 +145,7 @@ export default function AdminDashboard() {
            <div className={`p-2 rounded bg-red-600/10 border border-red-500/20 ${sidebarOpen ? 'mr-3' : ''}`}>
              <Shield className="h-6 w-6 text-red-500" />
            </div>
-           {sidebarOpen && <span className="font-display font-bold text-lg tracking-tight">NEXORA <span className="text-red-500">ADMIN</span></span>}
+           {sidebarOpen && <span className="font-display font-bold text-lg tracking-tight">SKYEAST <span className="text-red-500">ADMIN</span></span>}
         </div>
 
         <nav className="flex-1 py-6 px-3 space-y-2">

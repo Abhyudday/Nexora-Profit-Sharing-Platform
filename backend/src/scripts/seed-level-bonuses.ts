@@ -10,7 +10,7 @@ async function seedLevelBonuses() {
   try {
     console.log('Seeding level bonus percentages...');
 
-    // Nexora level bonus percentages (7 levels, total 20%)
+    // SkyEast level bonus percentages (7 levels, total 20%)
     // Based on profit sharing: 60% investor, 20% Marketing Plan, 20% developer
     const levelBonuses = [
       { level: 1, percentage: 5 },

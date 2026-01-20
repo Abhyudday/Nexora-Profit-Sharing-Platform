@@ -27,10 +27,10 @@ export const sendVerificationEmail = async (email: string, token: string) => {
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: 'Verify Your Email - Nexora',
+      subject: 'Verify Your Email - SkyEast',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Nexora - Trade as one!</h2>
+          <h2>Welcome to SkyEast - The Next Organization!</h2>
           <p>Please verify your email address by clicking the button below:</p>
           <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0;">
             Verify Email
@@ -69,7 +69,7 @@ export const sendDepositApprovedEmail = async (
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: 'Deposit Approved - Nexora',
+      subject: 'Deposit Approved - SkyEast',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Deposit Approved!</h2>
@@ -104,7 +104,7 @@ export const sendWithdrawalApprovedEmail = async (
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: 'Withdrawal Approved - Nexora',
+      subject: 'Withdrawal Approved - SkyEast',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Withdrawal Processed!</h2>
@@ -139,7 +139,7 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: 'Password Reset - Nexora',
+      subject: 'Password Reset - SkyEast',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Password Reset Request</h2>

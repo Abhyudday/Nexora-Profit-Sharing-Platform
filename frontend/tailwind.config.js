@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Nexora Brand Colors
+        // SkyEast Brand Colors
         brand: {
           50: '#f0f7ff',
           100: '#e0effe',

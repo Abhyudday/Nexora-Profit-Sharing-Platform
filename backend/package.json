@@ -1,7 +1,7 @@
 {
   "name": "crypto-mlm-backend",
   "version": "1.0.0",
-  "description": "Backend API for Nexora - Trade as one",
+  "description": "Backend API for SkyEast - The Next Organization",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

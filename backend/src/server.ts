@@ -63,8 +63,8 @@ app.use((req, res, next) => {
 const allowedOrigins = process.env.FRONTEND_URL?.split(',') || [
   'http://localhost:5173', 
   'http://localhost:5001', 
-  'https://nexora.group', 
-  'https://www.nexora.group'
+  'https://skyeast.com', 
+  'https://www.skyeast.com'
 ];
 
 app.use(cors({

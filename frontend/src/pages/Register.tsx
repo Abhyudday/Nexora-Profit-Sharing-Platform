@@ -52,13 +52,13 @@ export default function Register() {
           <div className="text-center mb-8">
             <div className="inline-flex justify-center mb-6 p-4 bg-slate-900/50 rounded-full ring-1 ring-white/10 shadow-lg">
               <img 
-                src="/assets/nexora-logo.svg" 
-                alt="Nexora Logo" 
+                src="/assets/skyeast-logo.png" 
+                alt="SkyEast Logo" 
                 className="h-16 w-auto"
               />
             </div>
             <h1 className="text-3xl font-display font-bold text-white mb-2">Create Account</h1>
-            <p className="text-slate-400">Join the future of algorithmic trading</p>
+            <p className="text-slate-400">The Next Organization</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -159,7 +159,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mb-4"></div>
-          <p className="text-slate-500 font-medium animate-pulse">Loading Nexora Dashboard...</p>
+          <p className="text-slate-500 font-medium animate-pulse">Loading SkyEast Dashboard...</p>
         </div>
       </div>
     );
@@ -175,11 +175,11 @@ export default function Dashboard() {
       >
         <div className="p-6 flex items-center justify-center border-b border-slate-800">
           <img 
-            src="/assets/nexora-logo.svg" 
-            alt="Nexora" 
+            src="/assets/skyeast-logo.png" 
+            alt="SkyEast" 
             className={`h-10 transition-all ${sidebarOpen ? 'w-auto' : 'w-10'}`} 
           />
-          {sidebarOpen && <span className="ml-3 font-display font-bold text-xl tracking-tight">NEXORA</span>}
+          {sidebarOpen && <span className="ml-3 font-display font-bold text-xl tracking-tight">SKYEAST</span>}
         </div>
 
         <nav className="flex-1 py-6 px-3 space-y-2">
