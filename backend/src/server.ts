@@ -64,7 +64,10 @@ const allowedOrigins = process.env.FRONTEND_URL?.split(',') || [
   'http://localhost:5173', 
   'http://localhost:5001', 
   'https://skyeast.com', 
-  'https://www.skyeast.com'
+  'https://www.skyeast.com',
+  'https://skyeastnexora.com',
+  'https://www.skyeastnexora.com',
+  'https://frontend-production-2190.up.railway.app'
 ];
 
 app.use(cors({
