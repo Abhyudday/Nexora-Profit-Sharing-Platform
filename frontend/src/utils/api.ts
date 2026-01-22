@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Production API URL - hardcoded for Railway deployment
-const PRODUCTION_API_URL = 'https://mlm-backend-production-c029.up.railway.app/api';
+const PRODUCTION_API_URL = 'https://backend-production-62aa.up.railway.app/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.PROD ? PRODUCTION_API_URL : 'http://localhost:5000/api');
