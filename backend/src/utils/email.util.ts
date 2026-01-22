@@ -15,6 +15,12 @@ const getFrontendUrl = (): string => {
 };
 
 export const sendVerificationEmail = async (email: string, token: string) => {
+  console.log('📧 Email Configuration Check:');
+  console.log('  - RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+  console.log('  - RESEND_API_KEY starts with:', process.env.RESEND_API_KEY?.substring(0, 8));
+  console.log('  - EMAIL_FROM:', fromEmail);
+  console.log('  - Recipient:', email);
+  
   if (!resend) {
     const errorMsg = '⚠️  Resend not configured (RESEND_API_KEY missing)';
     console.error(errorMsg);
@@ -22,8 +28,10 @@ export const sendVerificationEmail = async (email: string, token: string) => {
   }
 
   const verificationUrl = `${getFrontendUrl()}/verify-email?token=${token}`;
+  console.log('  - Verification URL:', verificationUrl);
 
   try {
+    console.log('📤 Attempting to send email via Resend...');
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
@@ -45,13 +53,18 @@ export const sendVerificationEmail = async (email: string, token: string) => {
     });
 
     if (error) {
-      console.error('❌ Failed to send verification email:', error);
-      throw error;
+      console.error('❌ Resend API returned error:', JSON.stringify(error, null, 2));
+      throw new Error(`Resend API error: ${error.message || JSON.stringify(error)}`);
     }
     
-    console.log('✅ Verification email sent:', data?.id);
-  } catch (err) {
-    console.error('❌ Error sending verification email:', err);
+    console.log('✅ Verification email sent successfully!');
+    console.log('  - Email ID:', data?.id);
+    return data;
+  } catch (err: any) {
+    console.error('❌ Error sending verification email:');
+    console.error('  - Error type:', err.constructor.name);
+    console.error('  - Error message:', err.message);
+    console.error('  - Full error:', JSON.stringify(err, null, 2));
     throw err;
   }
 };
